@@ -182,6 +182,17 @@ window.onload = function() {
   WallSlideStartMax = 20;
   WallSlideTime = 1.2;
 
+  DashSpeed = 240;
+  EndDashSpeed = 160;
+  EndDashUpMult = .75;
+  DashTime = .15;
+  DashCooldown = .2;
+  DashRefillCooldown = .1;
+  DashHJumpThruNudge = 6;
+  DashCornerCorrection = 4;
+  DashVFloorSnapDist = 3;
+  DashAttackTime = .3;
+
   
   function Approach(val, target, maxMove)
   {
@@ -192,14 +203,31 @@ window.onload = function() {
     facing = {x: 1, y: -1};
     sprite = {};
     player = {vx: 0, vy: 0, ax: 0, ay: Gravity,
+      lastAim: {x: 1, y: 0},
       maxFall: 0.0,
       jumpGraceTimer: 0.0,
       varJumpTimer: 0.0,
       varJumpSpeed: 0.0,
+      dashTimer: 0.0,
+      dashCooldownTimer: 0.0,
+      dashRefillCooldownTimer: 0.0,
       onGround: false,
+      Dashes: 2,
+      MaxDashes: 2,
     };
 
-    scene.loadImages(['img/character.png', 'img/spritejs.png', 'img/zergling.png', 'img/tiles.png'], function() {
+  function RefillDash()
+  {
+    if (player.Dashes < player.MaxDashes)
+    {
+      player.Dashes = player.MaxDashes;
+      return true;
+    }
+    else
+      return false;
+  }
+
+  scene.loadImages(['img/character.png', 'img/spritejs.png', 'img/zergling.png', 'img/tiles.png'], function() {
 
     input = scene.Input();
     input.enableCustomEvents = true;
@@ -439,7 +467,7 @@ window.onload = function() {
       }
 
       function isRunning() {
-        return input.keyboard.enter || input.keyboard.ctrl;
+        return input.keyboard.ctrl;
       }
 
       function isJumping() {
@@ -447,10 +475,13 @@ window.onload = function() {
       }
 
       function InputMove() {
+        /*
         let pixels = 3;
         if(isRunning()) {
           pixels = 6;
         }
+        */
+        let pixels = 1;
         let mx = 0;
         let my = 0;
         if(gamepad.buttons[12] || input.keyboard.up)    my += -pixels;
@@ -460,6 +491,16 @@ window.onload = function() {
         if(Math.abs(gamepad.axes[0])>0.05)      mx += pixels*gamepad.axes[0];
         if(Math.abs(gamepad.axes[1])>0.05)      my += pixels*gamepad.axes[1];
         return {mx, my};
+      }
+
+      function InputGetAimVector(facing) {
+        let {mx, my} = InputMove();
+        if (!mx && !my) {
+          mx = facing.x;
+        }
+        let len = Math.sqrt(mx*mx+my*my);
+        return {x: mx/len, y: my/len};
+        //return {x: mx, y: my};
       }
 
       function Jump(mx) {
@@ -475,12 +516,109 @@ window.onload = function() {
         player.varJumpSpeed = player.vy;
       }
 
-      function computeMovement() {
-        let dt = ticker.lastTicksElapsed;
-        //let dT = 1.5*dt*ticker.tickDuration/1000.0;
-        let dT = 1.5*1*ticker.tickDuration/1000.0;
+      function DashPressed() {
+        return input.keyboard.enter || gamepad.buttons[1] || gamepad.buttons[3];
+      }
 
+      function CanDash()
+      {
+        return DashPressed() && player.dashCooldownTimer <= 0 && player.Dashes > 0/*&&  &&
+          (TalkComponent.PlayerOver == null || !Input.Talk.Pressed);*/
+      }
+
+      function StartDash()
+      {
+        player.wasDashB = player.Dashes === 2;
+        player.Dashes = Math.max(0, (player.Dashes || 0) - 1);
+        DashBegin();
+        Dash();
+      }
+
+      function DashBegin()
+      {
+          player.calledDashEvents = false;
+          player.dashStartedOnGround = player.onGround;
+          player.launched = false;
+
+          //if (Engine.TimeRate > 0.25f)
+              //Celeste.Freeze(.05f);
+          player.dashTimer = DashTime;
+          player.dashCooldownTimer = DashCooldown;
+          player.dashRefillCooldownTimer = DashRefillCooldown;
+          player.StartedDashing = true;
+          player.wallSlideTimer = WallSlideTime;
+          player.dashTrailTimer = 0;
+
+          //level.Displacement.AddBurst(Center, .4f, 8, 64, .5f, Ease.QuadOut, Ease.QuadOut);
+
+          //Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
+
+          player.dashAttackTimer = DashAttackTime;
+          player.beforeDashSpeed = {x: player.vx, y: player.vy};
+          player.vx = 0; player.vy = 0;
+          player.DashDir = {x: 0, y: 0};
+
+          if (!player.onGround && player.Ducking && player.CanUnDuck)
+              player.Ducking = false;
+      }
+
+      function Dash() {
+        let dir = Object.assign({}, player.lastAim);
+        let newSpeed = {x: dir.x * DashSpeed, y: dir.y * DashSpeed};
+        if (Math.sign(player.beforeDashSpeed.x) == Math.sign(newSpeed.x) && Math.abs(player.beforeDashSpeed.x) > Math.abs(newSpeed.x)) {
+            newSpeed.x = player.beforeDashSpeed.x;
+        }
+        console.log(newSpeed.x, newSpeed.y);
+        player.vx = newSpeed.x;
+        player.vy = newSpeed.y;
+
+        player.DashDir = dir;
+        player.DashSpeed = newSpeed;
+        //SceneAs<Level>().DirectionalShake(DashDir, .2f);
+
+        if (player.DashDir.x != 0) {
+          facing.x = Math.sign(player.DashDir.x);
+        }
+
+        //CallDashEvents();
+      }
+
+      function computeMovement() {
+        let dt = ticker.lastTicksElapsed*ticker.tickDuration/1000.0;
+        let dT = dt * 1.5;
+
+        //let {mx, my} = nputMove();
         let {mx, my} = InputMove();
+
+        if (CanDash() && !player.wasDash) {
+          player.wasDash = true;
+          StartDash();
+        }
+
+        if (player.wasDash && !DashPressed()) {
+          player.wasDash = false;
+        }
+
+        //Running and Friction
+        if (player.Ducking && player.onGround)
+          player.vx = Approach(player.vx, 0, DuckFriction * dT);
+        else
+        {
+          let mult = player.onGround ? 1 : AirMult;
+          /*
+          if (player.onGround && level.CoreMode == Session.CoreModes.Cold)
+            mult *= .3f;
+            */
+
+          //let max = Holding == null ? MaxRun : HoldingMaxRun;
+          let max = MaxRun;
+          //if (level.InSpace)
+            //max *= SpacePhysicsMult;
+          if (Math.abs(player.vx) > max && Math.sign(player.vx) == mx)
+            player.vx = Approach(player.vx, max * mx, RunReduce * mult * dT);  //Reduce back from beyond the max speed
+          else
+            player.vx = Approach(player.vx, max * mx, RunAccel * mult * dT);   //Approach the max speed
+        }
 
         //Calculate current max fall speed
         {
@@ -527,7 +665,7 @@ window.onload = function() {
         if (player.onGround) {
           player.jumpGraceTimer = JumpGraceTime;
         } else if (player.jumpGraceTimer > 0) {
-          player.jumpGraceTimer -= dT;
+          player.jumpGraceTimer -= dt;
         }
         //player.jumpGraceTimer = Math.max(0, player.jumpGraceTimer);
         //console.log(player.jumpGraceTimer);
@@ -556,10 +694,43 @@ window.onload = function() {
           player.wasJumping = false;
         }
 
+        //Dashes
+        {
+          if (player.dashTimer > 0) {
+            player.dashTimer -= dt;
+            if (player.dashTimer > 0) {
+              player.vx = player.DashSpeed.x;
+              player.vy = player.DashSpeed.y;
+            } else {
+              if (player.DashDir.y <= 0) {
+                player.vx = player.DashDir.x * EndDashSpeed;
+                player.vy = player.DashDir.y * EndDashSpeed;
+              }
+              if (player.vy < 0) {
+                player.vy *= EndDashUpMult;
+              }
+            }
+          }
+
+          if (player.dashCooldownTimer > 0)
+            player.dashCooldownTimer -= dt;
+
+          if (player.dashRefillCooldownTimer > 0)
+            player.dashRefillCooldownTimer -= dt;
+
+          else {
+            if (player.onGround) {
+              RefillDash();
+            }
+          }
+        }
 
         //Var Jump
         if (player.varJumpTimer > 0)
-          player.varJumpTimer -= dT;
+          player.varJumpTimer -= dt;
+
+        //Aiming
+        player.lastAim = InputGetAimVector(facing);
 
         if (sprite.x) {
           //let x = sprite.w/2 + sprite.x + surface.x;
@@ -569,10 +740,12 @@ window.onload = function() {
           //let x = 32/2 + surface.x;
           //let y = 32/2 + surface.y;
 
+          /*
           if (sjs.map.collides(x+player.vx*dT, y)) {
             player.vx = 0;
           } else {
           }
+          */
           if (sjs.map.collides(x, y+player.vy*dT)) {
             player.onGround = player.vy > 0;
             player.vy = 0;
@@ -582,18 +755,16 @@ window.onload = function() {
           }
         }
 
-        player.vx = mx;
+        //player.vx = mx;
 
-
-
-        mx = player.vx;
+        mx = player.vx*dT;
         my = player.vy*dT;
         return {mx, my};
       }
 
         //player.position(surface.w / 2 - player.w/2, surface.h / 2 - player.h);
 
-        ticker = scene.Ticker(paint, {tickDuration: 1000/60, useAnimationFrame:true});
+        ticker = scene.Ticker(paint, {tickDuration: 1000/100, useAnimationFrame:true});
         ticker.run();
 
       function paint() {
@@ -684,7 +855,7 @@ window.onload = function() {
             updateAnim(celeste.anims.idle, surface, {mx, my}, facing, pfacing);
           }
 
-          if(fps && load && ticker.currentTick % 60 == 0) {
+          if(fps && load && ticker.currentTick % 100 == 0) {
               load.innerHTML = ticker.load;
               fps.innerHTML = ticker.fps;
           }
