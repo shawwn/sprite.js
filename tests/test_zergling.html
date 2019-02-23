@@ -257,7 +257,6 @@ window.onload = function() {
 
 
     let sprites = [];
-    let cycles = [];
     let actions = [
       anims.walk,
       //anims.attack,
@@ -265,9 +264,9 @@ window.onload = function() {
       //anims.die,
     ];
 
-    for(let y=0; y<4; y++) {
+    for(let y=0; y<1; y++) {
       let px = 0;
-      for(let x=0; x<8; x++) {
+      for(let x=0; x<1; x++) {
         let sp = scene.Sprite('img/zergling.png', layer);
         let anim = actions[randi(actions.length)];
         sp.size(anim.w, anim.h);
@@ -275,9 +274,14 @@ window.onload = function() {
         sp.move(-surface.x, -surface.y);
         sp.move(px + 10, 5 + (y * 60));
         sprites.push(sp);
-        let cycle = sjs.Cycle(anim.frames[randi(anim.frames.length)]);
-        cycle.addSprites([sp]);
-        cycles.push(cycle);
+        //let cycle = sjs.Cycle(anim.frames[randi(anim.frames.length)]);
+        {
+          sp.cycle_up = sjs.Cycle(anim.frames[0]);
+          sp.cycle_dn = sjs.Cycle(anim.frames[anim.frames.length-1]);
+          sp.cycle_lr = sjs.Cycle(anim.frames[Math.floor(anim.frames.length/2)]);
+          sp.cycle = sp.cycle_lr;
+          sp.cycle.addSprite(sp);
+        }
         px += anim.w + 5;
       }
     }
@@ -296,7 +300,7 @@ window.onload = function() {
 
           var mx = 0;
           var my = 0;
-          var pixels = 4 * ticker.lastTicksElapsed;
+          var pixels = 3 * ticker.lastTicksElapsed;
           if(input.keyboard.enter || input.keyboard.space) {
               var pixels = 2 * ticker.lastTicksElapsed;
           }
@@ -316,9 +320,17 @@ window.onload = function() {
           let sx = (surface.x + surface.w / 2);
           let sy = (surface.y + surface.h / 2);
 
+        /*
+        if (my !== 0 || mx !== 0) {
           for(let i=0, cy; cy = cycles[i]; i++) {
             cy.next(3*dt);
           }
+        } else {
+          for(let i=0, cy; cy = cycles[i]; i++) {
+            cy.reset(true);
+          }
+        }
+        */
           for(let i=0, sp; sp = sprites[i]; i++) {
             //sp.update();
             let x = sp.x + sp.w/2 + surface.x;
@@ -337,6 +349,33 @@ window.onload = function() {
               //.scale(xscale, 1)
             }
             */
+            if (mx < 0) {
+              sp.scale(-1, 1);
+              sp.cycle_up.removeSprite(sp);
+              sp.cycle_dn.removeSprite(sp);
+              sp.cycle_lr.addSprite(sp);
+              sp.cycle_lr.next(3*dt);
+            } else if (mx > 0) {
+              sp.scale( 1, 1);
+              sp.cycle_up.removeSprite(sp);
+              sp.cycle_dn.removeSprite(sp);
+              sp.cycle_lr.addSprite(sp);
+              sp.cycle_lr.next(3*dt);
+            } else if (my < 0) {
+              sp.cycle_lr.removeSprite(sp);
+              sp.cycle_dn.removeSprite(sp);
+              sp.cycle_up.addSprite(sp);
+              sp.cycle_up.next(3*dt);
+            } else if (my > 0) {
+              sp.cycle_lr.removeSprite(sp);
+              sp.cycle_up.removeSprite(sp);
+              sp.cycle_dn.addSprite(sp);
+              sp.cycle_dn.next(3*dt);
+            } else {
+              sp.cycle_up.reset();
+              sp.cycle_dn.reset();
+              sp.cycle_lr.reset();
+            }
             sp.update();
           }
 
