@@ -112,6 +112,33 @@ function updateGamepad() {
   }
 }
 
+function rumble(duration, strong = 1.0, weak = 1.0) {
+  if (hasGP) {
+    var gp = navigator.getGamepads()[0];
+    if (gp.vibrationActuator) {
+      gp.vibrationActuator.playEffect("dual-rumble", {
+        duration, strongMagnitude: strong, weakMagnitude: weak
+      });
+    }
+  }
+}
+
+RumbleLength = {
+  Short: 0.1,
+  Medium: 0.15,
+  Long: 0.5,
+}
+
+RumbleStrength = {
+  Strong: {strong: 0.7, weak: 1.0},
+  Medium: {strong: 0.5, weak: 0.5},
+  Light: {strong: 0.0, weak: 1.0},
+}
+
+function InputRumble(str = RumbleStrength.Strong, len = RumbleLength.Short) {
+  return rumble(1000*len, str.strong, str.weak);
+}
+
 function initController() {
   if(canGame()) {
 
@@ -215,8 +242,8 @@ window.onload = function() {
       dashCooldownTimer: 0.0,
       dashRefillCooldownTimer: 0.0,
       onGround: false,
-      Dashes: 2,
-      MaxDashes: 2,
+      Dashes: 1,
+      MaxDashes: 1,
     };
 
   function RefillDash()
@@ -554,7 +581,7 @@ window.onload = function() {
 
           //level.Displacement.AddBurst(Center, .4f, 8, 64, .5f, Ease.QuadOut, Ease.QuadOut);
 
-          //Input.Rumble(RumbleStrength.Strong, RumbleLength.Medium);
+          InputRumble(RumbleStrength.Strong, RumbleLength.Medium);
 
           player.dashAttackTimer = DashAttackTime;
           player.beforeDashSpeed = {x: player.vx, y: player.vy};
