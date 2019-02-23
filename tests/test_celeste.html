@@ -98,15 +98,17 @@ function canGame() {
   return "getGamepads" in navigator;
 }
 
-function reportOnGamepad() {
-  var gp = navigator.getGamepads()[0];
-  
-  for(var i=0;i<gp.buttons.length;i++) {
-    gamepad.buttons[i] = gp.buttons[i].pressed;
-  }
-  
-  for(var i=0;i<gp.axes.length; i++) {
-    gamepad.axes[i] = gp.axes[i];
+function updateGamepad() {
+  if (hasGP) {
+    var gp = navigator.getGamepads()[0];
+
+    for(var i=0;i<gp.buttons.length;i++) {
+      gamepad.buttons[i] = gp.buttons[i].pressed;
+    }
+
+    for(var i=0;i<gp.axes.length; i++) {
+      gamepad.axes[i] = gp.axes[i];
+    }
   }
 }
 
@@ -120,13 +122,14 @@ function initController() {
       hasGP = true;
       //$("#gamepadPrompt").html("Gamepad connected!");
       console.log("connection event");
-      repGP = window.setInterval(reportOnGamepad,1000/10);
+      //repGP = window.setInterval(reportOnGamepad,1000/100);
     });
 
     $(window).on("gamepaddisconnected", function() {
       console.log("disconnection event");
+      hasGP = false;
       //$("#gamepadPrompt").text(prompt);
-      window.clearInterval(repGP);
+      //window.clearInterval(repGP);
     });
 
     //setup an interval for Chrome
@@ -517,7 +520,7 @@ window.onload = function() {
       }
 
       function DashPressed() {
-        return input.keyboard.enter || gamepad.buttons[1] || gamepad.buttons[3];
+        return input.keyboard.enter || gamepad.buttons[1] || gamepad.buttons[2];
       }
 
       function CanDash()
@@ -583,7 +586,7 @@ window.onload = function() {
         //CallDashEvents();
       }
 
-      function computeMovement() {
+      function updateMovement() {
         let dt = ticker.lastTicksElapsed*ticker.tickDuration/1000.0;
         let dT = dt * 1.5;
 
@@ -764,7 +767,7 @@ window.onload = function() {
 
         //player.position(surface.w / 2 - player.w/2, surface.h / 2 - player.h);
 
-        ticker = scene.Ticker(paint, {tickDuration: 1000/100, useAnimationFrame:true});
+        ticker = scene.Ticker(paint, {tickDuration: 1000/60, useAnimationFrame:true});
         ticker.run();
 
       function paint() {
@@ -779,7 +782,8 @@ window.onload = function() {
           let sx = (surface.x + surface.w / 2);
           let sy = (surface.y + surface.h / 2);
 
-          let {mx, my} = computeMovement();
+          updateGamepad();
+          let {mx, my} = updateMovement();
 
         /*
           for(let i=0, sp; sp = sprites[i]; i++) {
@@ -855,7 +859,7 @@ window.onload = function() {
             updateAnim(celeste.anims.idle, surface, {mx, my}, facing, pfacing);
           }
 
-          if(fps && load && ticker.currentTick % 100 == 0) {
+          if(fps && load && ticker.currentTick % 60 == 0) {
               load.innerHTML = ticker.load;
               fps.innerHTML = ticker.fps;
           }
