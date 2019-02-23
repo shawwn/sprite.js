@@ -1,0 +1,404 @@
+<!DOCTYPE html><html>
+<head>
+<title>Test 32 sprites in a cycle animation</title>
+<!--<meta name = "viewport" content = "user-scalable=no, width=device-width">-->
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
+
+    <script type="text/javascript" src="../vendors/glMatrix.js"></script>
+    <script type="text/javascript" src="../vendors/webgl-utils.js"></script>
+    <script type="text/javascript" src="../lib/webgl.js"></script>
+    <script src="../sprite.js"></script>
+    <script src="../lib/scrolling.js"></script>
+    <script src="mapeditor/mapimport.js"></script>
+    
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+
+    <style>
+.sjs{
+  border:2px #999 solid;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+html, body {
+  overflow:hidden;
+    width: 100%;
+      height: 100%;
+}
+    </style>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 aVertexPosition;
+        attribute vec2 aTextureCoord;
+
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+
+        varying vec2 vTextureCoord;
+
+        void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vTextureCoord = aTextureCoord;
+        }
+    </script>
+
+    <script id="shader-fs" type="x-shader/x-fragment">
+        #ifdef GL_ES
+            precision highp float;
+        #endif
+
+        varying vec2 vTextureCoord;
+
+        uniform sampler2D uSampler;
+
+        void main(void) {
+            gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        }
+    </script>
+
+</head>
+<body>
+
+<!--<p>
+Sprite.js, 32 animated sprites, rotation and scaling. <a
+  href="https://github.com/batiste/sprite.js">Get the source</a>. <br>-->
+system load <span id="load"></span>%  (<span id="fps"></span>FPS)
+<!--
+<br><a href="?canvas=1" id="canvas-mode">Use canvas engine.</a>
+<a href="?html=1" id="html-mode">Use HTML engine</a>
+<a href="?webgl=1" id="webgl-mode">Use WebGL engine (experimental)</a>
+</p>
+-->
+
+</body>
+
+<script>
+
+
+var hasGP = false;
+var repGP;
+gamepad = {buttons: [], axes: [0,0,0,0,0,0,0,0,0,0,0]};
+
+function canGame() {
+  return "getGamepads" in navigator;
+}
+
+function reportOnGamepad() {
+  var gp = navigator.getGamepads()[0];
+  
+  for(var i=0;i<gp.buttons.length;i++) {
+    gamepad.buttons[i] = gp.buttons[i].pressed;
+  }
+  
+  for(var i=0;i<gp.axes.length; i++) {
+    gamepad.axes[i] = gp.axes[i];
+  }
+}
+
+function initController() {
+  if(canGame()) {
+
+    //var prompt = "To begin using your gamepad, connect it and press any button!";
+    //$("#gamepadPrompt").text(prompt);
+
+    $(window).on("gamepadconnected", function() {
+      hasGP = true;
+      //$("#gamepadPrompt").html("Gamepad connected!");
+      console.log("connection event");
+      repGP = window.setInterval(reportOnGamepad,1000/10);
+    });
+
+    $(window).on("gamepaddisconnected", function() {
+      console.log("disconnection event");
+      //$("#gamepadPrompt").text(prompt);
+      window.clearInterval(repGP);
+    });
+
+    //setup an interval for Chrome
+    var checkGP = window.setInterval(function() {
+      //console.log('checkGP');
+      if(navigator.getGamepads()[0]) {
+        if(!hasGP) $(window).trigger("gamepadconnected");
+        window.clearInterval(checkGP);
+      }
+    }, 500);
+  }
+}
+
+surface = null;
+input = null;
+
+function randi(n) {
+  return Math.floor(Math.random()*n);
+}
+
+
+window.touchmove = function(e) {
+    e.preventDefault();
+  }
+
+window.onload = function() {
+
+    let scene = sjs.Scene({w:2*0.3*640, h:2*0.3*600, autoPause: false});
+
+    scene.loadImages(['img/character.png', 'img/spritejs.png', 'img/zergling.png', 'img/tiles.png'], function() {
+
+    input = scene.Input();
+    input.enableCustomEvents = true;
+
+
+
+  var local = false;
+  switch(window.location.protocol) {
+     case 'http:':
+     case 'https:':
+       local = false;
+       break;
+     case 'file:':
+       local = true;
+       break;
+  }
+
+      scene.main = main;
+
+  if(local)
+      sjs.map.loadMap('http://127.0.0.1:8000/rzr/rzr.json', scene, main);
+  else
+      sjs.map.loadMap('rzr/rzr.json', scene, main);
+
+
+    let canvas = window.location.href.indexOf('canvas') != -1;
+    let webgl = window.location.href.indexOf('webgl') != -1;
+
+    let layer;
+    if(canvas) {
+        if (document.getElementById('canvas-mode')) document.getElementById('canvas-mode').style.display = 'none';
+        layer = scene.Layer("layer", {useCanvas:true});
+    } else if(webgl) {
+        if (document.getElementById('webgl-mode')) document.getElementById('webgl-mode').style.display = 'none';
+        layer = scene.Layer("layer", {useWebGL:true});
+    } else {
+        if (document.getElementById('html-mode')) document.getElementById('html-mode').style.display = 'none';
+        layer = scene.Layer("layer", {useCanvas:false});
+    }
+
+    anims = {};
+
+    // walk
+    {
+      let anim = anims.walk = {w: 40, h: 39, frames: []};
+      for (let x = 0; x < 9; x++) {
+        let frame = [];
+        for (let y = 0; y < 7; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + x*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + y*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+        anim.frames.push(frame);
+      }
+    }
+
+    // attack
+    {
+      let anim = anims.attack = {w: 40, h: 39, frames: []};
+      for (let x = 0; x < 9; x++) {
+        let frame = [];
+        for (let y = 0; y < 5; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + (x+0)*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + (y+7)*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+        anim.frames.push(frame);
+      }
+    }
+
+    // burrow
+    {
+      let anim = anims.burrow = {w: 40, h: 39, frames: []};
+      let frame = [];
+      for (let x = 0; x < 5; x++) {
+        for (let y = 0; y < 1; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + (x+0)*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + (y+5+7)*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+      }
+      anim.frames.push(frame);
+    }
+
+    // die
+    {
+      let anim = anims.die = {w: 65, h: 53, frames: []};
+      let frame = [];
+      for (let x = 0; x < 7; x++) {
+        for (let y = 0; y < 1; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + (x+0)*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + 546 + 0*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+      }
+      anim.frames.push(frame);
+    }
+
+      let sin_cycle = 0,
+          ms_to_render = 0,
+          average_ms = 0,
+          load = document.getElementById('load'),
+          fps = document.getElementById('fps');
+
+    function main() {
+      initController();
+		
+
+        var offsetx = 0;
+        var offsety = 0;
+
+        if(surface)
+            surface.remove();
+
+        surface = sjs.ScrollingSurface(scene, scene.w, scene.h, function(layer, _x, _y) {
+            sjs.map.paintOn(layer, _x, _y);
+        });
+
+        sjs.map.playerStart = sjs.map.playerStart || {x: 0, y: 0};
+
+        surface.position(sjs.map.playerStart.x - surface.w / 2, sjs.map.playerStart.y - surface.h / 2);
+        surface.update();
+
+
+    let sprites = [];
+    let actions = [
+      anims.walk,
+      //anims.attack,
+      //anims.burrow,
+      //anims.die,
+    ];
+
+    for(let y=0; y<1; y++) {
+      let px = 0;
+      for(let x=0; x<1; x++) {
+        let sp = scene.Sprite('img/zergling.png', layer);
+        let anim = actions[randi(actions.length)];
+        sp.size(anim.w, anim.h);
+        sp.setYOffset(2);
+        sp.move(-surface.x, -surface.y);
+        sp.move(px + 10, 5 + (y * 60));
+        sprites.push(sp);
+        //let cycle = sjs.Cycle(anim.frames[randi(anim.frames.length)]);
+        {
+          sp.cycle_up = sjs.Cycle(anim.frames[0]);
+          sp.cycle_dn = sjs.Cycle(anim.frames[anim.frames.length-1]);
+          sp.cycle_lr = sjs.Cycle(anim.frames[Math.floor(anim.frames.length/2)]);
+          sp.cycle = sp.cycle_lr;
+          sp.cycle.addSprite(sp);
+        }
+        px += anim.w + 5;
+      }
+    }
+
+        //player.position(surface.w / 2 - player.w/2, surface.h / 2 - player.h);
+
+        let ticker = scene.Ticker(paint, {useAnimationFrame:true});
+        ticker.run();
+
+      function paint() {
+
+          let start = new Date().getTime(),
+              xv = 1*Math.sin(ticker.currentTick / 150) * 2,
+              xscale = xv < 0 ? -1 : 1;
+
+
+          var mx = 0;
+          var my = 0;
+          var pixels = 3 * ticker.lastTicksElapsed;
+          if(input.keyboard.enter || input.keyboard.space || input.keyboard.ctrl) {
+              var pixels = 6 * ticker.lastTicksElapsed;
+          }
+
+          if(gamepad.buttons[12] || input.keyboard.up)    my += -pixels;
+          if(gamepad.buttons[13] || input.keyboard.down)  my += pixels;
+          if(gamepad.buttons[14] || input.keyboard.left)  mx += -pixels;
+          if(gamepad.buttons[15] || input.keyboard.right) mx += pixels;
+          if(Math.abs(gamepad.axes[0])>0.05)      mx += pixels*gamepad.axes[0];
+          if(Math.abs(gamepad.axes[1])>0.05)      my += pixels*gamepad.axes[1];
+
+          let dt = ticker.lastTicksElapsed;
+
+          let sx = (surface.x + surface.w / 2);
+          let sy = (surface.y + surface.h / 2);
+
+          for(let i=0, sp; sp = sprites[i]; i++) {
+
+            let x = sp.x + sp.w/2 + surface.x;
+            let y = sp.y + sp.h/2 + surface.y;
+
+            if (sjs.map.collides(x+mx*dt, y)) { mx=0; }
+            if (sjs.map.collides(x, y+my*dt)) { my=0; }
+
+            if (sjs.map.collides(x, y)) {
+              sp.setOpacity(0.1);
+            } else {
+              sp.setOpacity(1.0);
+            }
+
+            if (mx < 0) {
+              sp.scale(-1, 1);
+              sp.cycle_up.removeSprite(sp);
+              sp.cycle_dn.removeSprite(sp);
+              sp.cycle_lr.addSprite(sp);
+              sp.cycle_lr.next(0.75*-mx*dt);
+            } else if (mx > 0) {
+              sp.scale( 1, 1);
+              sp.cycle_up.removeSprite(sp);
+              sp.cycle_dn.removeSprite(sp);
+              sp.cycle_lr.addSprite(sp);
+              sp.cycle_lr.next(0.75*mx*dt);
+            } else if (my < 0) {
+              sp.cycle_lr.removeSprite(sp);
+              sp.cycle_dn.removeSprite(sp);
+              sp.cycle_up.addSprite(sp);
+              sp.cycle_up.next(0.75*-my*dt);
+            } else if (my > 0) {
+              sp.cycle_lr.removeSprite(sp);
+              sp.cycle_up.removeSprite(sp);
+              sp.cycle_dn.addSprite(sp);
+              sp.cycle_dn.next(0.75*my*dt);
+            } else {
+              sp.cycle_up.reset();
+              sp.cycle_dn.reset();
+              sp.cycle_lr.reset();
+            }
+            sp.update();
+          }
+
+          surface.move(mx * dt, my * dt);
+          surface.update();
+
+          if(fps && load && ticker.currentTick % 60 == 0) {
+              load.innerHTML = ticker.load;
+              fps.innerHTML = ticker.fps;
+          }
+      };
+    }
+
+    });
+
+};
+</script>
+</html>
