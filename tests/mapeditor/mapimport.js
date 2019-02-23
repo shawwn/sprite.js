@@ -100,22 +100,27 @@
     }
     
     function paintOn(layer, _x, _y) {
+
+        var w = map.tilewidth;
+        var h = map.tileheight;
+        var s = map.spacing || 0;
+        var b = map.border || 0;
         
-        var x_offset = _x % map.tilewidth;
-        var y_offset = _y % map.tileheight;
+        var x_offset = _x % (w+s);
+        var y_offset = _y % (h+s);
         
-        _x = _x / map.tilewidth | 0;
-        _y = _y / map.tileheight | 0;
+        _x = _x /(w+s) | 0;
+        _y = _y /(h+s) | 0;
         
-        for(var x = 0; x < (1 + layer.w / map.tilewidth); x++) {
-            for(var y = 0; y < (1 + layer.h / map.tileheight); y++) {
+        for(var x = 0; x < (1 + layer.w / w); x++) {
+            for(var y = 0; y < (1 + layer.h / h); y++) {
                 for(var i in tilelayers) {
                     var tilelayer = tilelayers[i];
                     var gid = tilelayer.getGid(_x + x, _y + y);
                     if(gid) {
                         var tile = getSprite(gid);
                         // we need to update the position as the Sprites are shared
-                        tile.position(map.tilewidth * x - x_offset, map.tileheight * y - y_offset);
+                        tile.position((w + 0*s) * x - x_offset, (h + 0*s) * y - y_offset);
                         tile.canvasUpdate(layer);
                     }
                 }
@@ -258,16 +263,18 @@
         var tileset = findTileset(gid);
         var localGid = gid - (tileset.firstgid);
 
+        var ts = tileset.spacing || 0;
+        var tb = tileset.border || 0;
         var tw = tileset.tilewidth;
         var th = tileset.tileheight;
 
-        var nb_x = tileset.imagewidth / tw | 0;
-        var nb_y = tileset.imageheight / th | 0;
+        var nb_x = tileset.imagewidth / (tw + ts) | 0;
+        var nb_y = tileset.imageheight / (th + ts) | 0;
         
         var x = localGid % nb_x;
         var y = localGid / nb_x | 0;
 
-        var sp = _scene.Sprite(tileset.image, {w:tw, h:th, xoffset:x * tw, yoffset:y * th, layer:null});
+        var sp = _scene.Sprite(tileset.image, {w:tw, h:th, xoffset:x * (tw + ts), yoffset:y * (th + ts), layer:null});
         return sp;
     }
     

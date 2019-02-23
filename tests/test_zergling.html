@@ -1,0 +1,310 @@
+<!DOCTYPE html><html>
+<head>
+<title>Test 32 sprites in a cycle animation</title>
+<meta name = "viewport" content = "user-scalable=no, width=device-width">
+
+    <script type="text/javascript" src="../vendors/glMatrix.js"></script>
+    <script type="text/javascript" src="../vendors/webgl-utils.js"></script>
+    <script type="text/javascript" src="../lib/webgl.js"></script>
+    <script src="../sprite.js"></script>
+    <script src="../lib/scrolling.js"></script>
+    <script src="mapeditor/mapimport.js"></script>
+
+    <style>.sjs{border:2px #999 solid;}</style>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
+        attribute vec3 aVertexPosition;
+        attribute vec2 aTextureCoord;
+
+        uniform mat4 uMVMatrix;
+        uniform mat4 uPMatrix;
+
+        varying vec2 vTextureCoord;
+
+        void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            vTextureCoord = aTextureCoord;
+        }
+    </script>
+
+    <script id="shader-fs" type="x-shader/x-fragment">
+        #ifdef GL_ES
+            precision highp float;
+        #endif
+
+        varying vec2 vTextureCoord;
+
+        uniform sampler2D uSampler;
+
+        void main(void) {
+            gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
+        }
+    </script>
+
+</head>
+<body>
+
+<p>Sprite.js, 32 animated sprites, rotation and scaling. <a href="https://github.com/batiste/sprite.js">Get the source</a>. <br>
+system load <span id="load"></span>%  (<span id="fps"></span>FPS)
+<br><a href="?canvas=1" id="canvas-mode">Use canvas engine.</a>
+<a href="?html=1" id="html-mode">Use HTML engine</a>
+<a href="?webgl=1" id="webgl-mode">Use WebGL engine (experimental)</a>
+</p>
+
+</body>
+
+<script>
+
+surface = null;
+input = null;
+
+function randi(n) {
+  return Math.floor(Math.random()*n);
+}
+
+
+window.onload = function() {
+
+    let scene = sjs.Scene({w:2*640, h:600});
+
+    scene.loadImages(['img/character.png', 'img/spritejs.png', 'img/zergling.png', 'img/tiles.png'], function() {
+
+    input = scene.Input();
+    input.enableCustomEvents = true;
+
+
+
+  var local = false;
+  switch(window.location.protocol) {
+     case 'http:':
+     case 'https:':
+       local = false;
+       break;
+     case 'file:':
+       local = true;
+       break;
+  }
+
+      scene.main = main;
+
+  if(local)
+      sjs.map.loadMap('http://127.0.0.1:8000/rzr/rzr.json', scene, main);
+  else
+      sjs.map.loadMap('rzr/rzr.json', scene, main);
+
+
+    let canvas = window.location.href.indexOf('canvas') != -1;
+    let webgl = window.location.href.indexOf('webgl') != -1;
+
+    let layer;
+    if(canvas) {
+        document.getElementById('canvas-mode').style.display = 'none';
+        layer = scene.Layer("layer", {useCanvas:true});
+    } else if(webgl) {
+        document.getElementById('webgl-mode').style.display = 'none';
+        layer = scene.Layer("layer", {useWebGL:true});
+    } else {
+        document.getElementById('html-mode').style.display = 'none';
+        layer = scene.Layer("layer", {useCanvas:false});
+    }
+
+    anims = {};
+
+    // walk
+    {
+      let anim = anims.walk = {w: 40, h: 39, frames: []};
+      for (let x = 0; x < 9; x++) {
+        let frame = [];
+        for (let y = 0; y < 7; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + x*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + y*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+        anim.frames.push(frame);
+      }
+    }
+
+    // attack
+    {
+      let anim = anims.attack = {w: 40, h: 39, frames: []};
+      for (let x = 0; x < 9; x++) {
+        let frame = [];
+        for (let y = 0; y < 5; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + (x+0)*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + (y+7)*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+        anim.frames.push(frame);
+      }
+    }
+
+    // burrow
+    {
+      let anim = anims.burrow = {w: 40, h: 39, frames: []};
+      let frame = [];
+      for (let x = 0; x < 5; x++) {
+        for (let y = 0; y < 1; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + (x+0)*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + (y+5+7)*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+      }
+      anim.frames.push(frame);
+    }
+
+    // die
+    {
+      let anim = anims.die = {w: 65, h: 53, frames: []};
+      let frame = [];
+      for (let x = 0; x < 7; x++) {
+        for (let y = 0; y < 1; y++) {
+          let frame_border = 2;
+          let frame_padding = 1;
+          let frame_w = anim.w;
+          let frame_h = anim.h;
+          let frame_x = 2 + (x+0)*(frame_border+frame_padding+frame_w);
+          let frame_y = 2 + 546 + 0*(frame_border+frame_padding+frame_h);
+          frame.push([frame_x, frame_y, 10]);
+        }
+      }
+      anim.frames.push(frame);
+    }
+
+    let sprites = [];
+    let cycles = [];
+    let actions = [anims.walk, anims.attack, anims.burrow, anims.die];
+
+    for(let y=0; y<4; y++) {
+      let px = 0;
+      for(let x=0; x<8; x++) {
+        let sp = scene.Sprite('img/zergling.png', layer);
+        let anim = actions[randi(actions.length)];
+        sp.size(anim.w, anim.h);
+        sp.setYOffset(2);
+        sp.move(px + 10, 5 + (y * 60));
+        sprites.push(sp);
+        let cycle = sjs.Cycle(anim.frames[randi(anim.frames.length)]);
+        cycle.addSprites([sp]);
+        cycles.push(cycle);
+        px += anim.w + 5;
+      }
+    }
+
+      /*
+    function random_from_list(list) {
+        var index=Math.floor(Math.random() * list.length);
+        return list[index];
+    }
+
+    var possible_tiles = [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [2, 1], [3, 0], [3, 1]];
+
+    var tile_list = [];
+    for(var i = 0; i<possible_tiles.length; i++) {
+        var tile = scene.Sprite('img/tiles.png', {w:48, h:48, x:0, y:0});
+        tile.offset(48 * possible_tiles[i][0], 48 * possible_tiles[i][1]);
+        tile_list.push(tile);
+    }
+
+    var surface = sjs.ScrollingSurface(scene, scene.w, scene.h, function(layer, x, y) {
+        for(var x = 0; x < (layer.w / 48); x++) {
+            for(var y = 0; y < (layer.h / 48); y++) {
+                var tile = random_from_list(tile_list);
+                // we need to update the position as the Sprites are shared
+                tile.position(48 * x, 48 * y);
+                tile.canvasUpdate(layer);
+            }
+        }
+    });
+    */
+
+
+
+      let sin_cycle = 0,
+          ms_to_render = 0,
+          average_ms = 0,
+          load = document.getElementById('load'),
+          fps = document.getElementById('fps');
+
+    function main() {
+
+        var offsetx = 0;
+        var offsety = 0;
+
+        if(surface)
+            surface.remove();
+
+        surface = sjs.ScrollingSurface(scene, scene.w, scene.h, function(layer, _x, _y) {
+            sjs.map.paintOn(layer, _x, _y);
+        });
+
+      sjs.map.playerStart = {x: 0, y: 0};
+
+        surface.position(sjs.map.playerStart.x - surface.w / 2, sjs.map.playerStart.y - surface.h / 2);
+        surface.update();
+
+        //player.position(surface.w / 2 - player.w/2, surface.h / 2 - player.h);
+
+        let ticker = scene.Ticker(paint, {useAnimationFrame:true});
+        ticker.run();
+
+      function paint() {
+
+          let start = new Date().getTime(),
+              xv = 1*Math.sin(ticker.currentTick / 150) * 2,
+              xscale = xv < 0 ? -1 : 1;
+
+
+          var mx = 0;
+          var my = 0;
+          var pixels = 4 * ticker.lastTicksElapsed;
+          if(input.keyboard.enter || input.keyboard.space) {
+              var pixels = 2 * ticker.lastTicksElapsed;
+          }
+
+          if(input.keyboard.up)
+              my = -pixels;
+          if(input.keyboard.down)
+              my = pixels;
+          if(input.keyboard.left)
+              mx = -pixels;
+          if(input.keyboard.right)
+              mx = pixels;
+
+
+          for(let i=0, cy; cy = cycles[i]; i++) {
+            cy.next(3*ticker.lastTicksElapsed);
+          }
+          for(let i=0, sp; sp = sprites[i]; i++) {
+            //sp.update();
+              sp.move(xv, 0)
+                .scale(xscale, 1)
+                .update();
+          }
+
+          surface.move(mx * ticker.lastTicksElapsed, my * ticker.lastTicksElapsed);
+          surface.update();
+
+          if(ticker.currentTick % 60 == 0) {
+              load.innerHTML = ticker.load;
+              fps.innerHTML = ticker.fps;
+          }
+      };
+    }
+
+    });
+
+};
+</script>
+</html>

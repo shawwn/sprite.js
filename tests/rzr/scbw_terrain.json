@@ -1,0 +1,14 @@
+{ "columns":14,
+ "image":"scbw_terrain.png",
+ "imageheight":676,
+ "imagewidth":478,
+ "margin":1,
+ "name":"scbw_terrain",
+ "spacing":1,
+ "tilecount":294,
+ "tiledversion":"1.2.2",
+ "tileheight":31,
+ "tilewidth":31,
+ "type":"tileset",
+ "version":1.2
+}
