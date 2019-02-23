@@ -320,35 +320,20 @@ window.onload = function() {
           let sx = (surface.x + surface.w / 2);
           let sy = (surface.y + surface.h / 2);
 
-        /*
-        if (my !== 0 || mx !== 0) {
-          for(let i=0, cy; cy = cycles[i]; i++) {
-            cy.next(3*dt);
-          }
-        } else {
-          for(let i=0, cy; cy = cycles[i]; i++) {
-            cy.reset(true);
-          }
-        }
-        */
           for(let i=0, sp; sp = sprites[i]; i++) {
-            //sp.update();
+
             let x = sp.x + sp.w/2 + surface.x;
             let y = sp.y + sp.h/2 + surface.y;
+
+            if (sjs.map.collides(x+mx*dt, y)) { mx=0; }
+            if (sjs.map.collides(x, y+my*dt)) { my=0; }
+
             if (sjs.map.collides(x, y)) {
               sp.setOpacity(0.1);
             } else {
               sp.setOpacity(1.0);
             }
-            /*
-            var collisionx = sjs.map.collides(x+mx*dt, y);
-            var collisiony = sjs.map.collides(x, y+my*dt);
-            if (!collisionx || !collisiony) {
-              if (!collisionx) sp.move(mx*dt, 0);
-              if (!collisiony) sp.move(0, my*dt);
-              //.scale(xscale, 1)
-            }
-            */
+
             if (mx < 0) {
               sp.scale(-1, 1);
               sp.cycle_up.removeSprite(sp);
