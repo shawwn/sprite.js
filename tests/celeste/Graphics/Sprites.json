@@ -34,19 +34,22 @@
                 "_attributes": {
                     "id": "walk",
                     "path": "walk",
-                    "delay": "0.06"
+                    "delay": "0.06",
+                    "frames": "0-11"
                 }
             }, {
                 "_attributes": {
                     "id": "push",
                     "path": "push",
-                    "delay": "0.1"
+                    "delay": "0.1",
+                    "frames": "0-15"
                 }
             }, {
                 "_attributes": {
                     "id": "runFast",
                     "path": "runFast",
-                    "delay": "0.05"
+                    "delay": "0.05",
+                    "frames": "0-11"
                 }
             }, {
                 "_attributes": {
@@ -59,7 +62,8 @@
                 "_attributes": {
                     "id": "dash",
                     "path": "dash",
-                    "delay": "0.09"
+                    "delay": "0.09",
+                    "frames": "0-3"
                 }
             }, {
                 "_attributes": {
@@ -72,7 +76,8 @@
                 "_attributes": {
                     "id": "slide",
                     "path": "slide",
-                    "delay": "0.03"
+                    "delay": "0.03",
+                    "frames": "0-2"
                 }
             }, {
                 "_attributes": {
@@ -286,6 +291,7 @@
                     "id": "idle",
                     "path": "idle",
                     "delay": "0.1",
+                    "frames": "0-8",
                     "goto": "idle"
                 }
             }, {
@@ -293,6 +299,7 @@
                     "id": "idleA",
                     "path": "idleA",
                     "delay": "0.12",
+                    "frames": "0-11",
                     "goto": "idle"
                 }
             }, {
@@ -300,6 +307,7 @@
                     "id": "idleB",
                     "path": "idleB",
                     "delay": "0.16",
+                    "frames": "0-23",
                     "goto": "idle"
                 }
             }, {
@@ -307,6 +315,7 @@
                     "id": "idleC",
                     "path": "idleC",
                     "delay": "0.05",
+                    "frames": "0-11",
                     "goto": "idle"
                 }
             }, {
@@ -321,6 +330,7 @@
                     "id": "runSlow",
                     "path": "runSlow",
                     "delay": "0.07",
+                    "frames": "0-11",
                     "goto": "runFast"
                 }
             }, {

@@ -111,7 +111,6 @@ function reportOnGamepad() {
 }
 
 function initController() {
-  celesteInit();
   if(canGame()) {
 
     //var prompt = "To begin using your gamepad, connect it and press any button!";
@@ -155,7 +154,50 @@ window.touchmove = function(e) {
 
 window.onload = function() {
 
-    let scene = sjs.Scene({w:2*0.3*640, h:2*0.3*600, autoPause: false});
+  //jumpGraceTime = 1.1;
+  //jumpSpeed = 16*-20*1.5;
+  //gravity = 16*9.8*5*1.5;
+  MaxFall = 160;
+  Gravity = 900;
+  HalfGravThreshold = 40;
+
+  FastMaxFall = 240;
+  FastMaxAccel = 300;
+
+  MaxRun = 90;
+  RunAccel = 1000;
+  RunReduce = 400;
+  AirMult = .65;
+
+  JumpGraceTime = 0.1;
+  JumpSpeed = -105;
+  JumpHBoost = 40;
+  VarJumpTime = 0.2;
+  CeilingVarJumpGrace = 0.05;
+
+  WallJumpCheckDist = 3;
+  WallJumpForceTime = .16;
+  WallJumpHSpeed = MaxRun + JumpHBoost;
+
+  WallSlideStartMax = 20;
+  WallSlideTime = 1.2;
+
+  
+  function Approach(val, target, maxMove)
+  {
+    return (val > target) ? Math.max(val - maxMove, target) : Math.min(val + maxMove, target);
+  }
+
+    scene = sjs.Scene({w:2*0.3*640, h:2*0.3*600, autoPause: false});
+    facing = {x: 1, y: -1};
+    sprite = {};
+    player = {vx: 0, vy: 0, ax: 0, ay: Gravity,
+      maxFall: 0.0,
+      jumpGraceTimer: 0.0,
+      varJumpTimer: 0.0,
+      varJumpSpeed: 0.0,
+      onGround: false,
+    };
 
     scene.loadImages(['img/character.png', 'img/spritejs.png', 'img/zergling.png', 'img/tiles.png'], function() {
 
@@ -279,9 +321,15 @@ window.onload = function() {
           fps = document.getElementById('fps');
 
     function main() {
+      console.log('main');
       initController();
-		
+      celesteInit(scene, layer, () => {
+        console.log('main2timeout');
+        setTimeout(main2, 1000);
+      });
+    }
 
+    function main2() {
         var offsetx = 0;
         var offsety = 0;
 
@@ -298,7 +346,7 @@ window.onload = function() {
         surface.update();
 
 
-    let sprites = [];
+    sprites = [];
     let actions = [
       anims.walk,
       //anims.attack,
@@ -328,39 +376,242 @@ window.onload = function() {
       }
     }
 
+      function hideAnim(anim) {
+        let dt = ticker.lastTicksElapsed;
+        for (let fs of anim.framesets) {
+          for (let frame of fs) {
+            if (frame && frame.sprite) {
+              frame.sprite.setOpacity(0.0);
+              //frame.sprite.setXScale(1.0);
+              //frame.sprite.setYScale(1.0);
+              frame.sprite.update();
+            }
+          }
+        }
+      }
+
+      function updateAnim(anim, surface, {mx, my}, facing, pfacing) {
+        let dt = ticker.lastTicksElapsed * Math.max(1,0.25*Math.sqrt(mx*mx+my*my));
+        hideAnim(anim);
+        if (!anim.playing) {
+          anim.playing = {time: 0.0, i: 0};
+          anim.playing.duration = anim.framesets[anim.playing.i].length;
+        }
+        if (false && anim.playing.time >= anim.playing.duration) {
+          anim.playing.time -= anim.playing.duration;
+          anim.playing.i = (anim.playing.i + 1) % anim.framesets.length;
+          anim.playing.duration = anim.framesets[anim.playing.i].length;
+        }
+        anim.playing.time += 0.25*dt;
+        let idx = Math.floor(anim.playing.time) % anim.framesets[anim.playing.i].length;
+        let frame = anim.framesets[anim.playing.i][idx];
+        if (frame && frame.sprite) {
+          sprite = frame.sprite;
+          frame.sprite.setOpacity(1.0);
+          //let s = Math.max(frame.iw, frame.ih);
+          //s -= s % 2;
+          //s = 16;
+          //frame.sprite.size(s, s);
+          frame.sprite.size(frame.iw, frame.ih);
+          //frame.sprite.scale(2,2);
+          let lx = facing.x;
+          let sx = 0.5*(frame.w / frame.iw);
+          let sy = 0.5*(frame.h / frame.ih);
+          frame.sprite.setX(0*-surface.x + scene.w/2 + frame.x*((lx<0)?0:1));
+          frame.sprite.setY(0*-surface.y + scene.h/2 + frame.y);
+          frame.sprite.scale(sx*lx, sy);
+          //frame.sprite.size(32, 32);
+          frame.sprite.update();
+          //console.log(frame.w / frame.sprite.img.width);
+          //console.dir(frame);
+          //console.log('main2');
+        }
+        /*
+        for (let fs of x.framesets) {
+          for (let frame of fs) {
+            if (frame.sprite) {
+              frame.sprite.update();
+              break;
+            }
+          }
+        }
+        */
+      }
+
+      function isRunning() {
+        return input.keyboard.enter || input.keyboard.ctrl;
+      }
+
+      function isJumping() {
+        return input.keyboard.space || gamepad.buttons[0] || gamepad.buttons[1];
+      }
+
+      function InputMove() {
+        let pixels = 3;
+        if(isRunning()) {
+          pixels = 6;
+        }
+        let mx = 0;
+        let my = 0;
+        if(gamepad.buttons[12] || input.keyboard.up)    my += -pixels;
+        if(gamepad.buttons[13] || input.keyboard.down)  my += pixels;
+        if(gamepad.buttons[14] || input.keyboard.left)  mx += -pixels;
+        if(gamepad.buttons[15] || input.keyboard.right) mx += pixels;
+        if(Math.abs(gamepad.axes[0])>0.05)      mx += pixels*gamepad.axes[0];
+        if(Math.abs(gamepad.axes[1])>0.05)      my += pixels*gamepad.axes[1];
+        return {mx, my};
+      }
+
+      function Jump(mx) {
+        player.jumpGraceTimer = 0;
+        player.varJumpTimer = VarJumpTime;
+        player.dashAttackTimer = 0;
+        player.wallSlideTimer = WallSlideTime;
+        player.wallBoostTimer = 0;
+
+        //player.vx += JumpHBoost * player.moveX;
+        player.vy = JumpSpeed;
+        //Speed += LiftBoost;
+        player.varJumpSpeed = player.vy;
+      }
+
+      function computeMovement() {
+        let dt = ticker.lastTicksElapsed;
+        //let dT = 1.5*dt*ticker.tickDuration/1000.0;
+        let dT = 1.5*1*ticker.tickDuration/1000.0;
+
+        let {mx, my} = InputMove();
+
+        //Calculate current max fall speed
+        {
+          let mf = MaxFall;
+          let fmf = FastMaxFall;
+          let Input = {MoveY: Math.sign(my)};
+
+          /*
+          if (level.InSpace)
+          {
+            mf *= SpacePhysicsMult;
+            fmf *= SpacePhysicsMult;
+          }
+          */
+
+          //Fast Fall
+          if (Input.MoveY == 1 && player.vy >= mf)
+          {
+            player.maxFall = Approach(player.maxFall, fmf, FastMaxAccel * dT);
+
+            /*
+            let half = mf + (fmf - mf) * .5;
+            if (player.vy >= half)
+            {
+              let spriteLerp = Math.Min(1, (player.vy - half) / (fmf - half));
+              Sprite.Scale.X = MathHelper.Lerp(1, .5, spriteLerp);
+              Sprite.Scale.Y = MathHelper.Lerp(1, 1.5, spriteLerp);
+            }
+            */
+          }
+          else {
+            player.maxFall = Approach(player.maxFall, mf, FastMaxAccel * dT);
+          }
+        }
+
+        //player.vx += dT*player.ax;
+        //player.vy += dT*player.ay;
+        if (!player.onGround) {
+          let max = player.maxFall;
+          let mult = 0.5;
+          player.vy = Approach(player.vy, max, Gravity * mult * dT);
+        }
+
+        if (player.onGround) {
+          player.jumpGraceTimer = JumpGraceTime;
+        } else if (player.jumpGraceTimer > 0) {
+          player.jumpGraceTimer -= dT;
+        }
+        //player.jumpGraceTimer = Math.max(0, player.jumpGraceTimer);
+        //console.log(player.jumpGraceTimer);
+
+        //if (player.vy > player.ay) { player.vy = player.ay; }
+
+        let jumping = isJumping();
+
+
+        //Variable Jumping
+        if (player.varJumpTimer > 0)
+        {
+          //if (AutoJump || Input.Jump.Check)
+          if (jumping)
+            player.vy = Math.min(player.vy, player.varJumpSpeed);
+          else
+            player.varJumpTimer = 0;
+        }
+
+        if (jumping) {
+          if (player.jumpGraceTimer > 0 && !player.wasJumping) {
+            player.wasJumping = true;
+            Jump();
+          }
+        } else {
+          player.wasJumping = false;
+        }
+
+
+        //Var Jump
+        if (player.varJumpTimer > 0)
+          player.varJumpTimer -= dT;
+
+        if (sprite.x) {
+          //let x = sprite.w/2 + sprite.x + surface.x;
+          //let y = sprite.h/2 + sprite.y + surface.y;
+          let x = 16/2 + sprite.x + surface.x;
+          let y = 32/2 + sprite.y + surface.y;
+          //let x = 32/2 + surface.x;
+          //let y = 32/2 + surface.y;
+
+          if (sjs.map.collides(x+player.vx*dT, y)) {
+            player.vx = 0;
+          } else {
+          }
+          if (sjs.map.collides(x, y+player.vy*dT)) {
+            player.onGround = player.vy > 0;
+            player.vy = 0;
+            //player.ay = 0;
+          } else {
+            player.onGround = false;
+          }
+        }
+
+        player.vx = mx;
+
+
+
+        mx = player.vx;
+        my = player.vy*dT;
+        return {mx, my};
+      }
+
         //player.position(surface.w / 2 - player.w/2, surface.h / 2 - player.h);
 
-        let ticker = scene.Ticker(paint, {useAnimationFrame:true});
+        ticker = scene.Ticker(paint, {tickDuration: 1000/60, useAnimationFrame:true});
         ticker.run();
 
       function paint() {
+        //console.log('paint');
 
           let start = new Date().getTime(),
               xv = 1*Math.sin(ticker.currentTick / 150) * 2,
               xscale = xv < 0 ? -1 : 1;
-
-
-          var mx = 0;
-          var my = 0;
-          var pixels = 3 * ticker.lastTicksElapsed;
-          if(input.keyboard.enter || input.keyboard.space || input.keyboard.ctrl) {
-              var pixels = 6 * ticker.lastTicksElapsed;
-          }
-
-          if(gamepad.buttons[12] || input.keyboard.up)    my += -pixels;
-          if(gamepad.buttons[13] || input.keyboard.down)  my += pixels;
-          if(gamepad.buttons[14] || input.keyboard.left)  mx += -pixels;
-          if(gamepad.buttons[15] || input.keyboard.right) mx += pixels;
-          if(Math.abs(gamepad.axes[0])>0.05)      mx += pixels*gamepad.axes[0];
-          if(Math.abs(gamepad.axes[1])>0.05)      my += pixels*gamepad.axes[1];
 
           let dt = ticker.lastTicksElapsed;
 
           let sx = (surface.x + surface.w / 2);
           let sy = (surface.y + surface.h / 2);
 
-          for(let i=0, sp; sp = sprites[i]; i++) {
+          let {mx, my} = computeMovement();
 
+        /*
+          for(let i=0, sp; sp = sprites[i]; i++) {
             let x = sp.x + sp.w/2 + surface.x;
             let y = sp.y + sp.h/2 + surface.y;
 
@@ -368,43 +619,70 @@ window.onload = function() {
             if (sjs.map.collides(x, y+my*dt)) { my=0; }
 
             if (sjs.map.collides(x, y)) {
-              sp.setOpacity(0.1);
+              sp.setOpacity(0.5);
             } else {
               sp.setOpacity(1.0);
             }
 
-            if (mx < 0) {
-              sp.scale(-1, 1);
-              sp.cycle_up.removeSprite(sp);
-              sp.cycle_dn.removeSprite(sp);
-              sp.cycle_lr.addSprite(sp);
-              sp.cycle_lr.next(0.75*-mx*dt);
-            } else if (mx > 0) {
-              sp.scale( 1, 1);
-              sp.cycle_up.removeSprite(sp);
-              sp.cycle_dn.removeSprite(sp);
-              sp.cycle_lr.addSprite(sp);
-              sp.cycle_lr.next(0.75*mx*dt);
-            } else if (my < 0) {
-              sp.cycle_lr.removeSprite(sp);
-              sp.cycle_dn.removeSprite(sp);
-              sp.cycle_up.addSprite(sp);
-              sp.cycle_up.next(0.75*-my*dt);
-            } else if (my > 0) {
-              sp.cycle_lr.removeSprite(sp);
-              sp.cycle_up.removeSprite(sp);
-              sp.cycle_dn.addSprite(sp);
-              sp.cycle_dn.next(0.75*my*dt);
-            } else {
-              sp.cycle_up.reset();
-              sp.cycle_dn.reset();
-              sp.cycle_lr.reset();
+            if (sp.cycle) {
+              if (mx < 0) {
+                sp.scale(-1, 1);
+                sp.cycle_up.removeSprite(sp);
+                sp.cycle_dn.removeSprite(sp);
+                sp.cycle_lr.addSprite(sp);
+                sp.cycle_lr.next(0.75*-mx*dt);
+              } else if (mx > 0) {
+                sp.scale( 1, 1);
+                sp.cycle_up.removeSprite(sp);
+                sp.cycle_dn.removeSprite(sp);
+                sp.cycle_lr.addSprite(sp);
+                sp.cycle_lr.next(0.75*mx*dt);
+              } else if (my < 0) {
+                sp.cycle_lr.removeSprite(sp);
+                sp.cycle_dn.removeSprite(sp);
+                sp.cycle_up.addSprite(sp);
+                sp.cycle_up.next(0.75*-my*dt);
+              } else if (my > 0) {
+                sp.cycle_lr.removeSprite(sp);
+                sp.cycle_up.removeSprite(sp);
+                sp.cycle_dn.addSprite(sp);
+                sp.cycle_dn.next(0.75*my*dt);
+              } else {
+                sp.cycle_up.reset();
+                sp.cycle_dn.reset();
+                sp.cycle_lr.reset();
+              }
             }
             sp.update();
           }
+          */
 
-          surface.move(mx * dt, my * dt);
+          let pfacing = {x: facing.x, y: facing.y};
+
+          surface.move(mx, my);
           surface.update();
+          for (let anim of Object.values(celeste.anims)) {
+            hideAnim(anim);
+          }
+          //updateAnim(celeste.anims.climbup, surface, {mx, my});
+          if (mx) {
+            facing.x = Math.sign(mx);
+            if (isRunning()) {
+              updateAnim(celeste.anims.runFast, surface, {mx, my}, facing, pfacing);
+            } else {
+              updateAnim(celeste.anims.walk, surface, {mx, my}, facing, pfacing);
+            }
+          } else if (my) {
+            facing.y = Math.sign(my);
+            if (my < 0) {
+              //updateAnim(celeste.anims.climbup, surface, {mx, my}, facing, pfacing);
+              updateAnim(celeste.anims.jumpSlow, surface, {mx, my}, facing, pfacing);
+            } else {
+              updateAnim(celeste.anims.fallSlow, surface, {mx, my}, facing, pfacing);
+            }
+          } else {
+            updateAnim(celeste.anims.idle, surface, {mx, my}, facing, pfacing);
+          }
 
           if(fps && load && ticker.currentTick % 60 == 0) {
               load.innerHTML = ticker.load;
