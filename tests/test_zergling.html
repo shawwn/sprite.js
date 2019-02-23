@@ -10,6 +10,8 @@
     <script src="../sprite.js"></script>
     <script src="../lib/scrolling.js"></script>
     <script src="mapeditor/mapimport.js"></script>
+    
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
 
     <style>
 .sjs{
@@ -71,6 +73,27 @@ system load <span id="load"></span>%  (<span id="fps"></span>FPS)
 </body>
 
 <script>
+
+
+var hasGP = false;
+var repGP;
+gamepad = {buttons: [], axes: [0,0,0,0,0,0,0,0,0,0,0]};
+
+function canGame() {
+  return "getGamepads" in navigator;
+}
+
+function reportOnGamepad() {
+  var gp = navigator.getGamepads()[0];
+  
+  for(var i=0;i<gp.buttons.length;i++) {
+    gamepad.buttons[i] = gp.buttons[i].pressed;
+  }
+  
+  for(var i=0;i<gp.axes.length; i++) {
+    gamepad.axes[i] = gp.axes[i];
+  }
+}
 
 surface = null;
 input = null;
@@ -240,6 +263,36 @@ window.onload = function() {
 
     function main() {
 
+      
+      if(canGame()) {
+
+        //var prompt = "To begin using your gamepad, connect it and press any button!";
+        //$("#gamepadPrompt").text(prompt);
+        
+        $(window).on("gamepadconnected", function() {
+          hasGP = true;
+          //$("#gamepadPrompt").html("Gamepad connected!");
+          console.log("connection event");
+          repGP = window.setInterval(reportOnGamepad,1000/10);
+        });
+
+        $(window).on("gamepaddisconnected", function() {
+          console.log("disconnection event");
+          //$("#gamepadPrompt").text(prompt);
+          window.clearInterval(repGP);
+        });
+
+        //setup an interval for Chrome
+        var checkGP = window.setInterval(function() {
+          console.log('checkGP');
+          if(navigator.getGamepads()[0]) {
+            if(!hasGP) $(window).trigger("gamepadconnected");
+            window.clearInterval(checkGP);
+          }
+        }, 500);
+      }
+		
+
         var offsetx = 0;
         var offsety = 0;
 
@@ -305,15 +358,12 @@ window.onload = function() {
               var pixels = 2 * ticker.lastTicksElapsed;
           }
 
-          if(input.keyboard.up)
-              my = -pixels;
-          if(input.keyboard.down)
-              my = pixels;
-          if(input.keyboard.left)
-              mx = -pixels;
-          if(input.keyboard.right)
-              mx = pixels;
-
+          if(gamepad.buttons[12] || input.keyboard.up)    my += -pixels;
+          if(gamepad.buttons[13] || input.keyboard.down)  my += pixels;
+          if(gamepad.buttons[14] || input.keyboard.left)  mx += -pixels;
+          if(gamepad.buttons[15] || input.keyboard.right) mx += pixels;
+          if(Math.abs(gamepad.axes[0])>0.05)      mx += pixels*gamepad.axes[0];
+          if(Math.abs(gamepad.axes[1])>0.05)      my += pixels*gamepad.axes[1];
 
           let dt = ticker.lastTicksElapsed;
 
@@ -339,23 +389,23 @@ window.onload = function() {
               sp.cycle_up.removeSprite(sp);
               sp.cycle_dn.removeSprite(sp);
               sp.cycle_lr.addSprite(sp);
-              sp.cycle_lr.next(3*dt);
+              sp.cycle_lr.next(0.75*-mx*dt);
             } else if (mx > 0) {
               sp.scale( 1, 1);
               sp.cycle_up.removeSprite(sp);
               sp.cycle_dn.removeSprite(sp);
               sp.cycle_lr.addSprite(sp);
-              sp.cycle_lr.next(3*dt);
+              sp.cycle_lr.next(0.75*mx*dt);
             } else if (my < 0) {
               sp.cycle_lr.removeSprite(sp);
               sp.cycle_dn.removeSprite(sp);
               sp.cycle_up.addSprite(sp);
-              sp.cycle_up.next(3*dt);
+              sp.cycle_up.next(0.75*-my*dt);
             } else if (my > 0) {
               sp.cycle_lr.removeSprite(sp);
               sp.cycle_up.removeSprite(sp);
               sp.cycle_dn.addSprite(sp);
-              sp.cycle_dn.next(3*dt);
+              sp.cycle_dn.next(0.75*my*dt);
             } else {
               sp.cycle_up.reset();
               sp.cycle_dn.reset();
