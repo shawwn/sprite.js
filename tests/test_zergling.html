@@ -1,7 +1,8 @@
 <!DOCTYPE html><html>
 <head>
 <title>Test 32 sprites in a cycle animation</title>
-<meta name = "viewport" content = "user-scalable=no, width=device-width">
+<!--<meta name = "viewport" content = "user-scalable=no, width=device-width">-->
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
 
     <script type="text/javascript" src="../vendors/glMatrix.js"></script>
     <script type="text/javascript" src="../vendors/webgl-utils.js"></script>
@@ -10,7 +11,19 @@
     <script src="../lib/scrolling.js"></script>
     <script src="mapeditor/mapimport.js"></script>
 
-    <style>.sjs{border:2px #999 solid;}</style>
+    <style>
+.sjs{
+  border:2px #999 solid;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+}
+html, body {
+  overflow:hidden;
+    width: 100%;
+      height: 100%;
+}
+    </style>
 
     <script id="shader-vs" type="x-shader/x-vertex">
         attribute vec3 aVertexPosition;
@@ -44,12 +57,16 @@
 </head>
 <body>
 
-<p>Sprite.js, 32 animated sprites, rotation and scaling. <a href="https://github.com/batiste/sprite.js">Get the source</a>. <br>
+<!--<p>
+Sprite.js, 32 animated sprites, rotation and scaling. <a
+  href="https://github.com/batiste/sprite.js">Get the source</a>. <br>-->
 system load <span id="load"></span>%  (<span id="fps"></span>FPS)
+<!--
 <br><a href="?canvas=1" id="canvas-mode">Use canvas engine.</a>
 <a href="?html=1" id="html-mode">Use HTML engine</a>
 <a href="?webgl=1" id="webgl-mode">Use WebGL engine (experimental)</a>
 </p>
+-->
 
 </body>
 
@@ -63,9 +80,13 @@ function randi(n) {
 }
 
 
+window.touchmove = function(e) {
+    e.preventDefault();
+  }
+
 window.onload = function() {
 
-    let scene = sjs.Scene({w:2*640, h:600});
+    let scene = sjs.Scene({w:2*0.3*640, h:2*0.3*600});
 
     scene.loadImages(['img/character.png', 'img/spritejs.png', 'img/zergling.png', 'img/tiles.png'], function() {
 
@@ -98,13 +119,13 @@ window.onload = function() {
 
     let layer;
     if(canvas) {
-        document.getElementById('canvas-mode').style.display = 'none';
+        if (document.getElementById('canvas-mode')) document.getElementById('canvas-mode').style.display = 'none';
         layer = scene.Layer("layer", {useCanvas:true});
     } else if(webgl) {
-        document.getElementById('webgl-mode').style.display = 'none';
+        if (document.getElementById('webgl-mode')) document.getElementById('webgl-mode').style.display = 'none';
         layer = scene.Layer("layer", {useWebGL:true});
     } else {
-        document.getElementById('html-mode').style.display = 'none';
+        if (document.getElementById('html-mode')) document.getElementById('html-mode').style.display = 'none';
         layer = scene.Layer("layer", {useCanvas:false});
     }
 
@@ -322,7 +343,7 @@ window.onload = function() {
           surface.move(mx * dt, my * dt);
           surface.update();
 
-          if(ticker.currentTick % 60 == 0) {
+          if(fps && load && ticker.currentTick % 60 == 0) {
               load.innerHTML = ticker.load;
               fps.innerHTML = ticker.fps;
           }
