@@ -182,26 +182,6 @@ window.onload = function() {
       anim.frames.push(frame);
     }
 
-    let sprites = [];
-    let cycles = [];
-    let actions = [anims.walk, anims.attack, anims.burrow, anims.die];
-
-    for(let y=0; y<4; y++) {
-      let px = 0;
-      for(let x=0; x<8; x++) {
-        let sp = scene.Sprite('img/zergling.png', layer);
-        let anim = actions[randi(actions.length)];
-        sp.size(anim.w, anim.h);
-        sp.setYOffset(2);
-        sp.move(px + 10, 5 + (y * 60));
-        sprites.push(sp);
-        let cycle = sjs.Cycle(anim.frames[randi(anim.frames.length)]);
-        cycle.addSprites([sp]);
-        cycles.push(cycle);
-        px += anim.w + 5;
-      }
-    }
-
       /*
     function random_from_list(list) {
         var index=Math.floor(Math.random() * list.length);
@@ -249,10 +229,37 @@ window.onload = function() {
             sjs.map.paintOn(layer, _x, _y);
         });
 
-      sjs.map.playerStart = {x: 0, y: 0};
+        sjs.map.playerStart = sjs.map.playerStart || {x: 0, y: 0};
 
         surface.position(sjs.map.playerStart.x - surface.w / 2, sjs.map.playerStart.y - surface.h / 2);
         surface.update();
+
+
+    let sprites = [];
+    let cycles = [];
+    let actions = [
+      anims.walk,
+      //anims.attack,
+      //anims.burrow,
+      //anims.die,
+    ];
+
+    for(let y=0; y<4; y++) {
+      let px = 0;
+      for(let x=0; x<8; x++) {
+        let sp = scene.Sprite('img/zergling.png', layer);
+        let anim = actions[randi(actions.length)];
+        sp.size(anim.w, anim.h);
+        sp.setYOffset(2);
+        sp.move(-surface.x, -surface.y);
+        sp.move(px + 10, 5 + (y * 60));
+        sprites.push(sp);
+        let cycle = sjs.Cycle(anim.frames[randi(anim.frames.length)]);
+        cycle.addSprites([sp]);
+        cycles.push(cycle);
+        px += anim.w + 5;
+      }
+    }
 
         //player.position(surface.w / 2 - player.w/2, surface.h / 2 - player.h);
 
@@ -283,17 +290,36 @@ window.onload = function() {
               mx = pixels;
 
 
+          let dt = ticker.lastTicksElapsed;
+
+          let sx = (surface.x + surface.w / 2);
+          let sy = (surface.y + surface.h / 2);
+
           for(let i=0, cy; cy = cycles[i]; i++) {
-            cy.next(3*ticker.lastTicksElapsed);
+            cy.next(3*dt);
           }
           for(let i=0, sp; sp = sprites[i]; i++) {
             //sp.update();
-              sp.move(xv, 0)
-                .scale(xscale, 1)
-                .update();
+            let x = sp.x + sp.w/2 + surface.x;
+            let y = sp.y + sp.h/2 + surface.y;
+            if (sjs.map.collides(x, y)) {
+              sp.setOpacity(0.1);
+            } else {
+              sp.setOpacity(1.0);
+            }
+            /*
+            var collisionx = sjs.map.collides(x+mx*dt, y);
+            var collisiony = sjs.map.collides(x, y+my*dt);
+            if (!collisionx || !collisiony) {
+              if (!collisionx) sp.move(mx*dt, 0);
+              if (!collisiony) sp.move(0, my*dt);
+              //.scale(xscale, 1)
+            }
+            */
+            sp.update();
           }
 
-          surface.move(mx * ticker.lastTicksElapsed, my * ticker.lastTicksElapsed);
+          surface.move(mx * dt, my * dt);
           surface.update();
 
           if(ticker.currentTick % 60 == 0) {

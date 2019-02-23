@@ -72,7 +72,7 @@
     function objectGroup(group) {
         for(index in group.objects) {
             var object = group.objects[index];
-            if(object.type=="playerStart") {
+            if(object.type=="playerStart" || object.type=="spawn") {
                 var playerStart = {x:object.x, y:object.y};
                 sjs.map.playerStart = playerStart;
             }
