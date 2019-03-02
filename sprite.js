@@ -49,10 +49,28 @@ browser_specific_runned = false,
 zindex = 1;
 
 
+// Older browsers don't support event options, feature detect it.
+var hasPassiveEvents = false;
+if (typeof window !== 'undefined') {
+  const passiveTestOptions = {
+    get passive() {
+      hasPassiveEvents = true;
+      return undefined;
+    },
+  };
+  window.addEventListener('testPassive', null, passiveTestOptions);
+  window.removeEventListener('testPassive', null, passiveTestOptions);
+}
+
+function _passive(useCapture) {
+  return hasPassiveEvents ? { passive: useCapture } : useCapture;
+}
+
+
 //IE 8 fix help functions
 function _addEventListener(element, type,listener,useCapture){
     if(element.addEventListener){
-        element.addEventListener(type, listener, useCapture);
+        element.addEventListener(type, listener, _passive(useCapture));
     }else if(element.attachEvent){
         element.attachEvent("on" + type, listener);
     }
@@ -60,7 +78,7 @@ function _addEventListener(element, type,listener,useCapture){
 
 function _removeEventListener(element, type,listener,useCapture){
     if(element.removeEventListener){
-        element.removeEventListener(type, listener, useCapture);
+        element.removeEventListener(type, listener, _passive(useCapture));
     }else if (element.detachEvent){
         element.detachEvent(type, listener);
     }
@@ -1310,7 +1328,7 @@ _Input = function _Input(scene) {
     that.mousepressed = false;
     this.mousereleased = false;
     this.keydown = false;
-    this.touchMoveSensibility = 20;
+    this.touchMoveSensibility = 18;
     this.enableCustomEvents = false;
 
     this.touchable = 'ontouchstart' in global;
@@ -1438,36 +1456,69 @@ _Input = function _Input(scene) {
         };
     }
 
+    function isMultiTap(e) {
+        if (e.touches && e.touches.length > 1) { return true; }
+        else if (e.changedTouches && e.changedTouches.length > 1) { return true; }
+        return false;
+    }
+
     function reduceTapEvent(e) {
         // To simplify I ignore multiple touch events and only return the first event
-        if (e.touches && e.touches.length) { e = e.touches[0]; }
-        else if (e.changedTouches && e.changedTouches.length) { e = e.changedTouches[0];}
+        if (e.touches && e.touches.length) { e = e.touches[e.touches.length - 1]; }
+        else if (e.changedTouches && e.changedTouches.length) { e = e.changedTouches[e.changedTouches.length - 1];}
         return e
     }
 
+    let wasMulti = false;
+    let resetTouchStart = false;
+
     if (this.touchable) {
         listen("touchstart", function (e) {
+            var multi = isMultiTap(e);
+            wasMulti = multi;
             e = reduceTapEvent(e);
-            updateKeyChange('space', true); // tap imitates space
+            //updateKeyChange('space', true); // tap imitates space
+            updateKeyChange('space', multi);
             // simulate the click
             clickEvent(e);
-            //store initial coordinates to find out swipe directions later
-            that.touchStart = {"x" : e.clientX, "y": e.clientY};
+            if (!multi)  {
+              resetTouchStart = false;
+              //store initial coordinates to find out swipe directions later
+              that.touchStart = {"x" : e.clientX, "y": e.clientY};
+            }
 
         });
 
     listen("touchend", function (e) {
+      resetTouchStart = true;
+      var multi = isMultiTap(e);
+      if (wasMulti || multi) { 
+        wasMulti = multi;
+        updateKeyChange('space', multi);
+        //e = reduceTapEvent(e);
+        //that.touchStart = {"x" : e.clientX, "y": e.clientY};
+      }
+      else {
         mouseUpEvent(e);
         that.keyboard = {}
         that.touchStart = null;
+      }
     });
 
     listen("touchmove", function (e) {
+        var multi = isMultiTap(e);
+        wasMulti = multi;
         _preventEvent(e); // avoid scrolling the page
         e = reduceTapEvent(e);
-        updateKeyChange('space', false); // if it moves: it is not a tap
+        //updateKeyChange('space', false); // if it moves: it is not a tap
+        updateKeyChange('space', multi);
         mouseMoveEvent(e);
-        if (that.touchStart) {
+
+      if (resetTouchStart) {
+        resetTouchStart = false;
+        //store initial coordinates to find out swipe directions later
+        that.touchStart = {"x" : e.clientX, "y": e.clientY};
+      } else if (that.touchStart && !multi) {
             var deltaX = e.clientX - that.touchStart.x;
             var deltaY = e.clientY - that.touchStart.y;
 
