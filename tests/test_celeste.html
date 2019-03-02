@@ -501,7 +501,7 @@ window.onload = function() {
       }
 
       function isJumping() {
-        return input.keyboard.space || gamepad.buttons[0] || gamepad.buttons[1];
+        return input.keyboard.w || input.keyboard.space || gamepad.buttons[0] || gamepad.buttons[1];
       }
 
       function InputMove() {
@@ -547,7 +547,7 @@ window.onload = function() {
       }
 
       function DashPressed() {
-        return input.keyboard.enter || gamepad.buttons[1] || gamepad.buttons[2];
+        return input.keyboard.f || input.keyboard.enter || gamepad.buttons[1] || gamepad.buttons[2];
       }
 
       function CanDash()
