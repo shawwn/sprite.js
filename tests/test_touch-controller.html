@@ -3,6 +3,7 @@
     <title>Test touch controller gestures</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
+    <meta name="msapplication-tap-highlight" content="no" />
 
     <script type="text/javascript" src="../vendors/glMatrix.js"></script>
     <script type="text/javascript" src="../vendors/webgl-utils.js"></script>
@@ -49,12 +50,12 @@
     <div id="sjs-container"></div>
     <div id="mobile-controller">
         <div class="controller-region">
-            <div class="controller-pad">
+            <div id="controller-pad" class="controller-pad">
                 <div id="pad" class="pad-bg"></div>
             </div>
         </div>
         <div class="controller-region"></div>
-        <div class="controller-region">
+        <div id="controller-buttons" class="controller-region">
             <div id="x" class="controller-btn x"></div>
             <div id="a" class="controller-btn a"></div>
             <div id="b" class="controller-btn b"></div>

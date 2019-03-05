@@ -1,31 +1,66 @@
-const DIR_ALL = Hammer.DIRECTION_ALL;
-const DIR_V = Hammer.DIRECTION_VERTICAL;
-const DIR_U = Hammer.DIRECTION_UP;
-const DIR_D = Hammer.DIRECTION_DOWN;
-const DIR_H = Hammer.DIRECTION_HORIZONTAL;
-const DIR_L = Hammer.DIRECTION_LEFT;
-const DIR_R = Hammer.DIRECTION_R;
+const tapPressThreshold = 150; // time in ms where tap becomes press
+
+const dirConstants = {
+  ALL: 30,
+  VERT: 24,
+  D: 16,
+  U: 8,
+  HOR: 6,
+  R: 4,
+  L: 2,
+  NONE: 1,
+};
+
+const directions = {
+  ALL: 'ALL',
+  VERT: 'VERT',
+  DOWN: 'DOWN',
+  U: 'U',
+  HOR: 'HOR',
+  R: 'R',
+  L: 'L',
+  NONE: 'NONE',
+};
+
+const evtStates = {
+  START: 1,
+  MOVE: 2,
+  END: 4,
+  CANCEL: 8,
+};
+
+const gestures = {
+  PAN: 'pan',
+  TAP: 'tap',
+  PRESS: 'press',
+  PRESS_UP: 'pressup',
+};
+
+const presses = {
+  DOWN: evtStates.START,
+  UP: evtStates.END,
+};
 
 const pans = {
-  LEFT: 'panleft',
-  RIGHT: 'panright',
-  UP: 'panup',
-  DOWN: 'pandown',
+  LEFT: directions.L,
+  RIGHT: directions.R,
+  UP: directions.U,
+  DOWN: directions.D,
 };
 
 class TouchController {
-  constructor(padEl, xEl, aEl, bEl, yEl) {
-    this.pad = padEl;
-    this.x = xEl;
-    this.a = aEl;
-    this.b = bEl;
-    this.y = yEl;
+  constructor(padId, xId, aId, bId, yId) {
+    this.pad = document.getElementById(padId);
+    this.x = document.getElementById(xId);
+    this.a = document.getElementById(aId);
+    this.b = document.getElementById(bId);
+    this.y = document.getElementById(yId);
     this.bindEvents();
     this.attachPadGestures();
     this.attachButtonGestures();
-    this.listenForPadEvents();
     this.listenForButtonTaps();
     this.listenForButtonPresses();
+    this.listenForPadEvents();
   }
 
   bindEvents() {
@@ -56,29 +91,37 @@ class TouchController {
     console.log('pan down', evt);
   }
 
-  handlePadPan(evt) {
-    const { additionalEvent } = evt;
+  handleUnknownEvent(evt) {
+    console.log('unknown', evt);
+  }
 
-    switch (additionalEvent) {
+  handlePadPan(evt) {
+    const {direction} = evt;
+
+    switch (direction) {
       case pans.UP:
-        this.handlePadPanUp(evt);
-        break;
+        return this.handlePadPanUp(evt);
 
       case pans.DOWN:
-        this.handlePadPanDown(evt);
-        break;
+        return this.handlePadPanDown(evt);
 
       case pans.LEFT:
-        this.handlePadPanLeft(evt);
-        break;
+        return this.handlePadPanLeft(evt);
 
       case pans.RIGHT:
-        this.handlePadPanRight(evt);
-        break;
+        return this.handlePadPanRight(evt);
 
       default:
-        break;
+        return this.handleUnknownEvent(evt);
     }
+  }
+
+  handlePadPressUp(evt) {
+
+  }
+
+  handlePadPressUp(evt) {
+    console.log('pad press up', evt);
   }
 
   handlePadPress(evt) {
@@ -93,76 +136,86 @@ class TouchController {
     console.log(button, 'tap', evt);
   }
 
-  handleButtonPress(button, evt) {
-    console.log(button, 'press', evt);
+  handleButtonPress(button, direction, evt) {
+    const { type } = evt;
+    console.log(button, type, direction, evt);
   }
 
   attachPadGestures() {
     this.padMc = new Hammer.Manager(this.pad);
-    this.padMc.add(new Hammer.Pan({ direction: DIR_ALL }));
-    this.padMc.add(new Hammer.Press());
-    this.padMc.add(new Hammer.Tap());
+    this.padMc.add(new Hammer.Pan({ direction: directions.ALL }));
+    this.padMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    this.padMc.add(new Hammer.Tap({ time: tapPressThreshold }));
   }
 
   attachButtonGestures() {
     this.xMc = new Hammer.Manager(this.x);
-    this.aMc = new Hammer.Manager(this.a);
-    this.bMc = new Hammer.Manager(this.b);
-    this.yMc = new Hammer.Manager(this.y);
-    this.xMc.add(new Hammer.Tap());
-    this.xMc.add(new Hammer.Press());
-    this.aMc.add(new Hammer.Tap());
-    this.aMc.add(new Hammer.Press());
-    this.bMc.add(new Hammer.Tap());
-    this.bMc.add(new Hammer.Press());
-    this.yMc.add(new Hammer.Tap());
-    this.yMc.add(new Hammer.Press());
+    // this.xMc = new Hammer.Manager(this.x);
+    // this.aMc = new Hammer.Manager(this.a);
+    // this.bMc = new Hammer.Manager(this.b);
+    // this.yMc = new Hammer.Manager(this.y);
+    // this.xMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    // this.xMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    // this.aMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    // this.aMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    // this.bMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    // this.bMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    // this.yMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    // this.yMc.add(new Hammer.Press({ time: tapPressThreshold }));
   }
 
   listenForPadEvents() {
-    this.padMc.on('pan', this.handlePadPan.bind(this));
-    this.padMc.on('press', this.handlePadPress.bind(this));
-    this.padMc.on('tap', this.handlePadTap.bind(this));
+    this.padMc.on(gestures.PAN, this.handlePadPan.bind(this));
+    this.padMc.on(gestures.PRESS, this.handlePadPress.bind(this));
+    this.padMc.on(gestures.PRESS_UP, this.handlePadPressUp.bind(this));
+    this.padMc.on(gestures.TAP, this.handlePadTap.bind(this));
   }
 
   listenForButtonTaps() {
-    this.xMc.on('tap', (evt) => {
+    this.xMc.on(gestures.TAP, (evt) => {
       this.handleButtonTap('x', evt);
     });
-    this.aMc.on('tap', (evt) => {
+    this.aMc.on(gestures.TAP, (evt) => {
       this.handleButtonTap('a', evt);
     });
-    this.bMc.on('tap', (evt) => {
+    this.bMc.on(gestures.TAP, (evt) => {
       this.handleButtonTap('b', evt);
     });
-    this.yMc.on('tap', (evt) => {
+    this.yMc.on(gestures.TAP, (evt) => {
       this.handleButtonTap('y', evt);
     });
   }
 
   listenForButtonPresses() {
-    this.xMc.on('press', (evt) => {
-      this.handleButtonPress('x', evt);
-    });
-    this.aMc.on('press', (evt) => {
-      this.handleButtonPress('a', evt);
-    });
-    this.bMc.on('press', (evt) => {
-      this.handleButtonPress('b', evt);
-    });
-    this.yMc.on('press', (evt) => {
-      this.handleButtonPress('y', evt);
-    });
+    // this.xMc.on(gestures.PRESS, (evt) => {
+    //   this.handleButtonPress('x', dirs.D, evt);
+    // });
+    // this.xMc.on(gestures.PRESS_UP, (evt) => {
+    //   this.handleButtonPress('x', dirs.U, evt);
+    // });
+    // this.aMc.on(gestures.PRESS, (evt) => {
+    //   this.handleButtonPress('a', evt);
+    // });
+    // this.aMc.on(gestures.PRESS_UP, (evt) => {
+    //   this.handleButtonPress('a', evt);
+    // });
+    // this.bMc.on(gestures.PRESS, (evt) => {
+    //   this.handleButtonPress('b', evt);
+    // });
+    // this.bMc.on(gestures.PRESS_UP, (evt) => {
+    //   this.handleButtonPress('b', evt);
+    // });
+    // this.yMc.on(gestures.PRESS, (evt) => {
+    //   this.handleButtonPress('y', evt);
+    // });
+    // this.yMc.on(gestures.PRESS_UP, (evt) => {
+    //   this.handleButtonPress('y', evt);
+    // });
   }
 }
 
 function initTouchController() {
-  const pad = document.getElementById('pad');
-  const x = document.getElementById('x');
-  const a = document.getElementById('a');
-  const b = document.getElementById('b');
-  const y = document.getElementById('y');
-  return new TouchController(pad, x, a, b, y);
+  return new TouchController('controller-pad', 'x', 'a', 'b', 'y');
 }
 
 let touchController;

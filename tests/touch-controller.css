@@ -127,7 +127,7 @@ html, body {
 }
 
 .pad-bg {
-    background-image: url('./img/pad.png');
+    background-image: url('./img/joystick.png');
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
