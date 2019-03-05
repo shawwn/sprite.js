@@ -1,20 +1,12 @@
-const tapPressThreshold = 150; // time in ms where tap becomes press
+const Hammer = window.Hammer || {};
 
-const dirConstants = {
-  ALL: 30,
-  VERT: 24,
-  D: 16,
-  U: 8,
-  HOR: 6,
-  R: 4,
-  L: 2,
-  NONE: 1,
-};
+// time in ms, duration cutoff for tap and min duration for press
+const tapPressThreshold = 100;
 
 const directions = {
   ALL: 'ALL',
   VERT: 'VERT',
-  DOWN: 'DOWN',
+  D: 'DOWN',
   U: 'U',
   HOR: 'HOR',
   R: 'R',
@@ -34,18 +26,6 @@ const gestures = {
   TAP: 'tap',
   PRESS: 'press',
   PRESS_UP: 'pressup',
-};
-
-const presses = {
-  DOWN: evtStates.START,
-  UP: evtStates.END,
-};
-
-const pans = {
-  LEFT: directions.L,
-  RIGHT: directions.R,
-  UP: directions.U,
-  DOWN: directions.D,
 };
 
 class TouchController {
@@ -99,25 +79,21 @@ class TouchController {
     const {direction} = evt;
 
     switch (direction) {
-      case pans.UP:
+      case Hammer.DIRECTION_UP:
         return this.handlePadPanUp(evt);
 
-      case pans.DOWN:
+      case Hammer.DIRECTION_DOWN:
         return this.handlePadPanDown(evt);
 
-      case pans.LEFT:
+      case Hammer.DIRECTION_LEFT:
         return this.handlePadPanLeft(evt);
 
-      case pans.RIGHT:
+      case Hammer.DIRECTION_RIGHT:
         return this.handlePadPanRight(evt);
 
       default:
         return this.handleUnknownEvent(evt);
     }
-  }
-
-  handlePadPressUp(evt) {
-
   }
 
   handlePadPressUp(evt) {
@@ -132,7 +108,7 @@ class TouchController {
     console.log('tap', evt);
   }
 
-  handleButtonTap(button, evt) {
+  handleButtonTap(button, direction, evt) {
     console.log(button, 'tap', evt);
   }
 
@@ -143,74 +119,73 @@ class TouchController {
 
   attachPadGestures() {
     this.padMc = new Hammer.Manager(this.pad);
-    this.padMc.add(new Hammer.Pan({ direction: directions.ALL }));
+    this.padMc.add(new Hammer.Pan({ direction: Hammer.DIRECTION_ALL }));
     this.padMc.add(new Hammer.Press({ time: tapPressThreshold }));
     this.padMc.add(new Hammer.Tap({ time: tapPressThreshold }));
   }
 
   attachButtonGestures() {
     this.xMc = new Hammer.Manager(this.x);
-    // this.xMc = new Hammer.Manager(this.x);
-    // this.aMc = new Hammer.Manager(this.a);
-    // this.bMc = new Hammer.Manager(this.b);
-    // this.yMc = new Hammer.Manager(this.y);
-    // this.xMc.add(new Hammer.Tap({ time: tapPressThreshold }));
-    // this.xMc.add(new Hammer.Press({ time: tapPressThreshold }));
-    // this.aMc.add(new Hammer.Tap({ time: tapPressThreshold }));
-    // this.aMc.add(new Hammer.Press({ time: tapPressThreshold }));
-    // this.bMc.add(new Hammer.Tap({ time: tapPressThreshold }));
-    // this.bMc.add(new Hammer.Press({ time: tapPressThreshold }));
-    // this.yMc.add(new Hammer.Tap({ time: tapPressThreshold }));
-    // this.yMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    this.aMc = new Hammer.Manager(this.a);
+    this.bMc = new Hammer.Manager(this.b);
+    this.yMc = new Hammer.Manager(this.y);
+    this.xMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    this.xMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    this.aMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    this.aMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    this.bMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    this.bMc.add(new Hammer.Press({ time: tapPressThreshold }));
+    this.yMc.add(new Hammer.Tap({ time: tapPressThreshold }));
+    this.yMc.add(new Hammer.Press({ time: tapPressThreshold }));
   }
 
   listenForPadEvents() {
-    this.padMc.on(gestures.PAN, this.handlePadPan.bind(this));
-    this.padMc.on(gestures.PRESS, this.handlePadPress.bind(this));
-    this.padMc.on(gestures.PRESS_UP, this.handlePadPressUp.bind(this));
-    this.padMc.on(gestures.TAP, this.handlePadTap.bind(this));
+    this.padMc.on(gestures.PAN, this.handlePadPan);
+    this.padMc.on(gestures.PRESS, this.handlePadPress);
+    this.padMc.on(gestures.PRESS_UP, this.handlePadPressUp);
+    this.padMc.on(gestures.TAP, this.handlePadTap);
   }
 
   listenForButtonTaps() {
     this.xMc.on(gestures.TAP, (evt) => {
-      this.handleButtonTap('x', evt);
+      this.handleButtonTap('x', directions.NONE, evt);
     });
     this.aMc.on(gestures.TAP, (evt) => {
-      this.handleButtonTap('a', evt);
+      this.handleButtonTap('a', directions.NONE, evt);
     });
     this.bMc.on(gestures.TAP, (evt) => {
-      this.handleButtonTap('b', evt);
+      this.handleButtonTap('b', directions.NONE, evt);
     });
     this.yMc.on(gestures.TAP, (evt) => {
-      this.handleButtonTap('y', evt);
+      this.handleButtonTap('y', directions.NONE, evt);
     });
   }
 
   listenForButtonPresses() {
-    // this.xMc.on(gestures.PRESS, (evt) => {
-    //   this.handleButtonPress('x', dirs.D, evt);
-    // });
-    // this.xMc.on(gestures.PRESS_UP, (evt) => {
-    //   this.handleButtonPress('x', dirs.U, evt);
-    // });
-    // this.aMc.on(gestures.PRESS, (evt) => {
-    //   this.handleButtonPress('a', evt);
-    // });
-    // this.aMc.on(gestures.PRESS_UP, (evt) => {
-    //   this.handleButtonPress('a', evt);
-    // });
-    // this.bMc.on(gestures.PRESS, (evt) => {
-    //   this.handleButtonPress('b', evt);
-    // });
-    // this.bMc.on(gestures.PRESS_UP, (evt) => {
-    //   this.handleButtonPress('b', evt);
-    // });
-    // this.yMc.on(gestures.PRESS, (evt) => {
-    //   this.handleButtonPress('y', evt);
-    // });
-    // this.yMc.on(gestures.PRESS_UP, (evt) => {
-    //   this.handleButtonPress('y', evt);
-    // });
+    this.xMc.on(gestures.PRESS, (evt) => {
+      this.handleButtonPress('x', directions.D, evt);
+    });
+    this.xMc.on(gestures.PRESS_UP, (evt) => {
+      this.handleButtonPress('x', directions.U, evt);
+    });
+    this.aMc.on(gestures.PRESS, (evt) => {
+      this.handleButtonPress('a', directions.D, evt);
+    });
+    this.aMc.on(gestures.PRESS_UP, (evt) => {
+      this.handleButtonPress('a', directions.U, evt);
+    });
+    this.bMc.on(gestures.PRESS, (evt) => {
+      this.handleButtonPress('b', directions.D, evt);
+    });
+    this.bMc.on(gestures.PRESS_UP, (evt) => {
+      this.handleButtonPress('b', directions.U, evt);
+    });
+    this.yMc.on(gestures.PRESS, (evt) => {
+      this.handleButtonPress('y', directions.D, evt);
+    });
+    this.yMc.on(gestures.PRESS_UP, (evt) => {
+      this.handleButtonPress('y', directions.U, evt);
+    });
   }
 }
 
