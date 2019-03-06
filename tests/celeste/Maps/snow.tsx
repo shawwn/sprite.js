@@ -2,7 +2,7 @@
 <tileset version="1.2" tiledversion="1.2.2" name="snow" tilewidth="8" tileheight="8" tilecount="90" columns="6">
  <image source="../Graphics/Atlases/Gameplay/tilesets/snow.png" width="48" height="120"/>
  <terraintypes>
-  <terrain name="snowFlat" tile="0"/>
+  <terrain name="snow" tile="0"/>
  </terraintypes>
  <tile id="0" terrain=",,0,0"/>
  <tile id="1" terrain=",,0,0"/>
@@ -48,8 +48,10 @@
  <tile id="79" terrain=",0,,"/>
  <tile id="80" terrain=",0,,"/>
  <tile id="81" terrain=",0,,"/>
+ <tile id="82" terrain="0,,,0"/>
  <tile id="84" terrain="0,,,"/>
  <tile id="85" terrain="0,,,"/>
  <tile id="86" terrain="0,,,"/>
  <tile id="87" terrain="0,,,"/>
+ <tile id="88" terrain=",0,0,"/>
 </tileset>
