@@ -1,4 +1,21 @@
 window.addEventListener('load', () => {
+  const xRange = {
+    min: 315,
+    max: 44,
+  };
+  const aRange = {
+    min: 45,
+    max: 134,
+  };
+  const bRange = {
+    min: 135,
+    max: 224,
+  };
+  const yRange = {
+    min: 225,
+    max: 314,
+  };
+
   let left;
   let right;
 
@@ -20,21 +37,29 @@ window.addEventListener('load', () => {
     left = nipplejs.create({
       zone: document.getElementById(leftId),
       mode: 'static',
-      position: { left: '50%', top: '50%' },
-      color: 'green',
+      position: { left: '41%', top: '52%' },
+      color: 'white',
       size,
     });
 
     right = nipplejs.create({
       zone: document.getElementById(rightId),
       mode: 'static',
-      position: { right: '50%', top: '50%' },
-      color: 'red',
+      position: { right: '41%', top: '52%' },
+      color: 'white',
       size,
     });
   }
 
   function handleLeftMove(evt, data) {
+    console.log(data);
+  }
+
+  function handleRightStart(evt, data) {
+    console.log(data);
+  }
+
+  function handleRightEnd(evt, data) {
     console.log(data);
   }
 
@@ -44,7 +69,9 @@ window.addEventListener('load', () => {
 
   function addMoveListeners() {
     left.on('0:move', handleLeftMove);
-    right.on('1:move', handleRightMove);
+    right.on('move', handleRightMove);
+    right.on('start', handleRightStart);
+    right.on('end', handleRightEnd);
   }
 
   createJoysticks('left', 'right');

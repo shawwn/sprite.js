@@ -1,4 +1,38 @@
-#joysticks-container {
+:root {
+    --colors-x: #00249B;
+    --colors-x-darker: #011863;
+    --colors-a: #D03329;
+    --colors-a-darker: #A7271F;
+    --colors-b: #FFF802;
+    --colors-b-darker: #8D8901;
+    --colors-y: #019F5F;
+    --colors-y-darker: #007445;
+    --colors-start: #47484B;
+    --colors-pad: #433F3B;
+}
+
+html {
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+html, body {
+    overflow:hidden;
+    width: 100vw;
+    height: 100vh;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+}
+
+#container {
+    position: relative;
+}
+
+#joysticks-container, #mobile-controller {
+    position: absolute;
     width: 100vw;
     height: 44vw;
     margin-top: 10px;
@@ -7,17 +41,106 @@
     display: flex;
 }
 
+#mobile-controller {
+    background-image: url('./img/blank_controller.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
 #left, #right {
     position: relative;
     width: 50vw;
     height: 44vw;
     max-width: 280px;
     max-height: 246px;
+    display: block;
+}
+
+.controller-region {
+    width: 34vw;
+    max-width: calc(560px * 0.34);
+    height: 44vw;
+    max-height: 246px;
+    display: block;
+    position: relative;
+}
+
+.controller-region:nth-child(2) {
+    width: 26vw;
+    max-width: calc(560px * 0.26);
+}
+
+.controller-region:nth-child(3) {
+    width: 40vw;
+    max-width: calc(560px * 0.4);
+}
+
+.controller-btn {
+    width: 7vw;
+    max-width: 42px;
+    height: 7vw;
+    max-height: 42px;
+    border-radius: 50%;
+    border: 2px solid black;
+    position: absolute;
+}
+
+.controller-btn.x {
+    background-color: var(--colors-x);
+    border-color: var(--colors-x-darker);
+    top: 26%;
+    left: 39%;
+}
+
+.controller-btn.a {
+    background-color: var(--colors-a);
+    border-color: var(--colors-a-darker);
+    top: 43%;
+    left: 63%;
+}
+
+.controller-btn.b {
+    background-color: var(--colors-b);
+    border-color: var(--colors-b-darker);
+    top: 61%;
+    left: 39%;
+}
+
+.controller-btn.y {
+    background-color: var(--colors-y);
+    border-color: var(--colors-y-darker);
+    top: 43%;
+    left: 14%;
+}
+
+.controller-pad {
+    top: 10%;
+    left: 9%;
+    bottom: 8%;
+    right: 0;
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.pad-bg {
+    background-image: url('./img/pad.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    width: 30vw;
+    height: 30vw;
+    max-width: 100px;
+    max-height: 100px;
+    margin-left: 15%;
 }
 
 @media (min-width: 560px) {
-    #joysticks-container {
-        margin: 10px auto 0 auto;
+    #joysticks-container, #mobile-controller {
+        margin: 10px calc(50vw - 280px) 0 calc(50vw - 280px);
     }
 }
 
