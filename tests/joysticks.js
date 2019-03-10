@@ -1,21 +1,4 @@
 window.addEventListener('load', () => {
-  const xRange = {
-    min: 315,
-    max: 44,
-  };
-  const aRange = {
-    min: 45,
-    max: 134,
-  };
-  const bRange = {
-    min: 135,
-    max: 224,
-  };
-  const yRange = {
-    min: 225,
-    max: 314,
-  };
-
   let left;
   let right;
 
