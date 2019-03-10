@@ -250,10 +250,11 @@ CTimeSpan = class CTimeSpan {
       throw new CArgumentOutOfRangeException(null, CEnvironment.GetResourceString("TimeSpan overflowed because the duration is too long."));
     return num * 10000000n;
   }
+
+  static get Zero() { return new CTimeSpan(0n); }
+  static get MaxValue() { return new CTimeSpan(Clong.MaxValue); }
+  static get MinValue() { return new CTimeSpan(Clong.MinValue); }
 };
-CTimeSpan.Zero = new CTimeSpan(0n);
-CTimeSpan.MaxValue = new CTimeSpan(Clong.MaxValue);
-CTimeSpan.MinValue = new CTimeSpan(Clong.MinValue);
 
 CStopwatch = class CStopwatch
 {
@@ -337,6 +338,14 @@ CStopwatch = class CStopwatch
   }
 };
 
+CGameTime = class CGameTime {
+  constructor(/*TimeSpan*/ totalRealTime = CTimeSpan.Zero, /*TimeSpan*/ elapsedRealTime = CTimeSpan.Zero, /*bool*/ isRunningSlowly = false)
+  {
+    this.TotalGameTime = totalRealTime;
+    this.ElapsedGameTime = elapsedRealTime;
+    this.IsRunningSlowly = isRunningSlowly;
+  }
+};
 
 CMath = class CMath {
   static get PI() { return Math.PI; }
