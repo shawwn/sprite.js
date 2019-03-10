@@ -64,7 +64,7 @@
     </div>
 
 <script src="./touch-controller.js"></script>
-<!--<script>
+<script>
 var hasGP = false;
 var repGP;
 gamepad = {buttons: [], axes: [0,0,0,0,0,0,0,0,0,0,0]};
@@ -98,6 +98,12 @@ function updateGamepad() {
     for(var i=0;i<gp.axes.length; i++) {
       gamepad.axes[i] = gp.axes[i];
     }
+  } else if (window.touchController) {
+    Object.keys(window.touchController.buttons).forEach((id) => {
+      if (window.touchController.buttons[id].pressed) {
+        console.log(window.touchController.buttons[id]);
+      }
+    });
   }
 }
 
@@ -167,9 +173,9 @@ function randi(n) {
 }
 
 
-window.touchmove = function(e) {
-    e.preventDefault();
-  }
+// window.touchmove = function(e) {
+//     e.preventDefault();
+//   }
 
 window.onload = function() {
 
@@ -886,6 +892,6 @@ window.onload = function() {
     });
 
 };
-</script>-->
+</script>
 </body>
 </html>

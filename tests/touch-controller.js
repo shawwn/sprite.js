@@ -32,8 +32,9 @@ class TouchController {
   constructor(padConfig = {}, buttonConfigs = []) {
     this.buttons = {};
 
+    this.pressing = new Set();
+
     this.current = {
-      pressingButtons: [],
       pressingPad: false,
       panDirection: directions.NONE,
     };
@@ -51,6 +52,7 @@ class TouchController {
         manager: null,
         name: config.name,
         data: config.data,
+        pressed: false,
       };
     });
 
@@ -139,8 +141,13 @@ class TouchController {
   }
 
   handleButtonPress(button, direction, evt) {
-    const { type } = evt;
-    console.log(button, type, direction, evt);
+    if (this.pressing.has(button.element.id)) {
+      this.pressing.delete(button.element.id);
+      this.buttons[button.element.id].pressing = false;
+    } else {
+      this.pressing.add(button.element.id);
+      this.buttons[button.element.id].pressing = true;
+    }
   }
 
   attachButtonGestures() {
@@ -169,10 +176,10 @@ class TouchController {
   listenForButtonPresses() {
     this.buttonIds.forEach((id) => {
       this.buttons[id].manager.on(gestures.PRESS, (evt) => {
-        this.handleButtonPress(this.buttons[id], directions.D, evt);
+        this.handleButtonPress(this.buttons[evt.target.id], directions.D, evt);
       });
       this.buttons[id].manager.on(gestures.PRESS_UP, (evt) => {
-        this.handleButtonPress(this.buttons[id], directions.U, evt);
+        this.handleButtonPress(this.buttons[evt.target.id], directions.U, evt);
       });
     });
   }
@@ -198,9 +205,9 @@ function initTouchController() {
   return new TouchController(padConfig, buttonConfigs);
 }
 
-let touchController;
+window.touchController = window.touchController || {};
 
 window.addEventListener('load', () => {
-  touchController = initTouchController();
+  window.touchController = initTouchController();
   console.log(touchController);
 });

@@ -1,0 +1,28 @@
+#joysticks-container {
+    width: 100vw;
+    height: 44vw;
+    margin-top: 10px;
+    max-width: 560px;
+    max-height: 246px;
+    display: flex;
+}
+
+#left, #right {
+    position: relative;
+    width: 50vw;
+    height: 44vw;
+    max-width: 280px;
+    max-height: 246px;
+}
+
+@media (min-width: 560px) {
+    #joysticks-container {
+        margin: 10px auto 0 auto;
+    }
+}
+
+@media (min-width: 1024px) {
+    #joysticks-container {
+        display: none;
+    }
+}

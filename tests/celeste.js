@@ -51,7 +51,6 @@ class CelesteFrames {
       for (let i = from; i <= upto; i++) {
         let frame = new CelesteFrame('./celeste/Graphics/Atlases/Gameplay/characters/player/' + path, i);
         frame.load(scene, layer, (frame) => {
-          console.dir(frame);
           frames[frame.i-from] = frame;
         });
       }
