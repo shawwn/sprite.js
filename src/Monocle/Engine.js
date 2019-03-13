@@ -1,3 +1,29 @@
+function FisNumber(x) {
+  return typeof x === "number";
+}
+
+function FisFunction(x) {
+  return typeof x === "number";
+}
+
+function FisGenerator(x) {
+    return x.constructor.name === 'GeneratorFunction';
+}
+
+function FisEnumerator(x) {
+  if (x == null) return false;
+  if (FisGenerator(x)) return true;
+  return false;
+}
+
+function FasEnumerable(x) {
+  return new CEnumerable(x);
+}
+
+function FasEnumerator(x) {
+  return FasEnumerable(x).GetEnumerator();
+}
+
 function Fnewchar(n) {
   return new Array(n);
 }
@@ -60,6 +86,12 @@ Cstring = class Cstring {
     return '';
   }
 };
+
+CNotImplementedException = class CNotImplementedException extends Error {
+}
+
+CInvalidOperationException = class CInvalidOperationException extends Error {
+}
 
 CArgumentException = class CArgumentException extends Error {
 }
@@ -399,6 +431,9 @@ CEngine = class CEngine {
     return "//"; // TODO
   }
 
+  static get RawDeltaTime() { return 1.0/128; }
+  static get DeltaTime() { return 1.0/128; }
+
   get ContentDirectory()
   {
     return CPath.Combine(CEngine.AssemblyDirectory, CEngine.Instance.ContentRootDirectory);
@@ -409,3 +444,282 @@ CEngine = class CEngine {
     return "//"; // TODO
   }
 };
+
+CComponent = class CComponent {
+  constructor(active, visible) {
+    this.Active = active;
+    this.Visible = visible;
+    this.Entity = null;
+  }
+
+  Added(entity)
+  {
+    this.Entity = entity;
+    if (this.Scene == null)
+      return;
+    this.Scene.Tracker.ComponentAdded(this);
+  }
+
+  Removed(entity)
+  {
+    if (this.Scene != null)
+      this.Scene.Tracker.ComponentRemoved(this);
+    this.Entity = null;
+  }
+
+  EntityAdded(scene)
+  {
+    scene.Tracker.ComponentAdded(this);
+  }
+
+  EntityRemoved(scene)
+  {
+    scene.Tracker.ComponentRemoved(this);
+  }
+
+  SceneEnd(scene)
+  {
+  }
+
+  EntityAwake()
+  {
+  }
+
+  Update()
+  {
+  }
+
+  Render()
+  {
+  }
+
+  DebugRender(camera)
+  {
+  }
+
+  HandleGraphicsReset()
+  {
+  }
+
+  HandleGraphicsCreate()
+  {
+  }
+
+  RemoveSelf()
+  {
+    if (this.Entity == null)
+      return;
+    this.Entity.Remove(this);
+  }
+
+  /*
+  public T SceneAs<T>() where T : Scene
+  {
+    return this.Scene as T;
+  }
+
+  public T EntityAs<T>() where T : Entity
+  {
+    return this.Entity as T;
+  }
+  */
+
+  get Scene()
+  {
+    if (this.Entity == null)
+      return null;
+    return this.Entity.Scene;
+  }
+};
+
+CEnumerator = class CEnumerator {
+  constructor(value) {
+    this._value = value;
+    this._started = false;
+  }
+  get Current()
+  {
+    if (!this._started)
+      throw new CInvalidOperationException("Must call MoveNext() before .Current");
+    if (this._current.done)
+      return undefined;
+    return this._current.value;
+  }
+  MoveNext()
+  {
+    this._current = this._value.next();
+    this._started = true;
+    return !this._current.done;
+  }
+  Reset()
+  {
+    throw new CNotImplementedException();
+  }
+};
+
+CEnumerable = class CEnumerable {
+  constructor(value)
+  {
+    this._value = value;
+  }
+
+  GetEnumerator()
+  {
+    if (this._value instanceof CEnumerable)
+      return this._value.GetEnumerator();
+    if (FisGenerator(this._value))
+      return new CEnumerator(this._value());
+    if (FisFunction(this._value))
+      return new CEnumerator(this._value());
+    if (this._value[Symbol.iterator])
+      return new CEnumerator(this._value[Symbol.iterator]());
+    throw new CArgumentException("Not enumerable.")
+  }
+};
+
+CStack = class CStack extends CEnumerable {
+  constructor()
+  {
+    super([]);
+  }
+
+  get Count()
+  {
+    return FLength(this._value);
+  }
+
+  Clear()
+  {
+    while (this.Count > 0)
+      this.Pop();
+  }
+
+  Contains(item)
+  {
+    return this._value.indexOf(item) >= 0;
+  }
+
+  Peek()
+  {
+    if (this.Count == 0)
+      this.ThrowForEmptyStack();
+    return this._value[this.Count - 1];
+  }
+
+  Pop()
+  {
+    if (this.Count == 0)
+      this.ThrowForEmptyStack();
+    return this._value.pop();
+  }
+
+  Push(item)
+  {
+    this._value.push(item);
+  }
+
+  ToArray()
+  {
+    return [...this._value];
+  }
+
+  _ThrowForEmptyStack()
+  {
+    throw new CInvalidOperationException("Stack empty.");
+  }
+};
+
+CCoroutine = class CCoroutine extends CComponent {
+  constructor(...args)
+  {
+    switch (args.length) {
+      case 2: { super(true, false); this._preconstructor(); this._constructor2(...args); } break;
+      case 1: { super(false, false); this._preconstructor(); this._constructor1(...args); } break;
+      case 0: { super(false, false); this._preconstructor(); this._constructor1(...args); } break;
+      default: throw new CArgumentException("Invalid argument count.");
+    }
+  }
+
+  _preconstructor()
+  {
+    this.RemoveOnComplete = true;
+    this.UseRawDeltaTime = false;
+    this.enumerators = null; // : Stack<IEnumerator>
+    this.waitTimer = 0.0;
+    this.ended = false;
+    this.Finished = false;
+  }
+
+  _constructor2(/*IEnumerator*/ functionCall, /*bool*/ removeOnComplete = true)
+  {
+    this.enumerators = new CStack/*<IEnumerator>*/();
+    this.enumerators.Push(FasEnumerator(functionCall));
+    this.RemoveOnComplete = removeOnComplete;
+  }
+
+  _constructor1(/*bool*/ removeOnComplete = true)
+  {
+    this.RemoveOnComplete = removeOnComplete;
+    this.enumerators = new CStack/*<IEnumerator>*/();
+  }
+
+  Update()
+  {
+    this.ended = false;
+    if (/*(double)*/ this.waitTimer > 0.0)
+    {
+      this.waitTimer -= this.UseRawDeltaTime ? CEngine.RawDeltaTime : CEngine.DeltaTime;
+    }
+    else
+    {
+      if (this.enumerators.Count <= 0)
+        return;
+      /*IEnumerator*/ enumerator = this.enumerators.Peek();
+      if (enumerator.MoveNext() && !this.ended)
+      {
+        if (FisNumber(enumerator.Current))
+        {
+          this.waitTimer = enumerator.Current;
+        }
+        else
+        {
+          if (!(FisEnumerator(enumerator.Current)))
+            return;
+          this.enumerators.Push(FasEnumerator(enumerator.Current));
+        }
+      }
+      else
+      {
+        if (this.ended)
+          return;
+        this.enumerators.Pop();
+        if (this.enumerators.Count != 0)
+          return;
+        this.Finished = true;
+        this.Active = false;
+        if (!this.RemoveOnComplete)
+          return;
+        this.RemoveSelf();
+      }
+    }
+  }
+
+  Cancel()
+  {
+    this.Active = false;
+    this.Finished = true;
+    this.waitTimer = 0.0;
+    this.enumerators.Clear();
+    this.ended = true;
+  }
+
+  Replace(/*IEnumerator*/ functionCall)
+  {
+    this.Active = true;
+    this.Finished = false;
+    this.waitTimer = 0.0;
+    this.enumerators.Clear();
+    this.enumerators.Push(functionCall);
+    this.ended = true;
+  }
+}; 
