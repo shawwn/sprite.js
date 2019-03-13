@@ -553,9 +553,11 @@ Sprite.prototype.transformOrigin = function transformOrigin(x, y) {
 };
 
 Sprite.prototype.setBackgroundRepeat = function setBackgroundRepeat(value) {
-    this._dirty.backgroundRepeat = true;
-    this.backgroundRepeat = value;
-    return this;
+  this._dirty.backgroundRepeat = true;
+  if (value === false) value = 'no-repeat';
+  if (value === true) value = 'repeat';
+  this.backgroundRepeat = value;
+  return this;
 };
 
 // End of boilerplate setters, start of helpers
