@@ -3525,6 +3525,28 @@ COpenGLBackbuffer = class COpenGLBackbuffer {
   }
 };
 
+COpenGLBuffer = class COpenGLBuffer {
+  /*public*/ /*OpenGLBuffer*/ constructor(
+    /*uint*/ handle = 0,
+    /*IntPtr*/ bufferSize = 0,
+    /*GLenum*/ dynamic = 35040, /*gl.STREAM_DRAW*/
+  ) {
+    this.Handle = handle;
+    this.BufferSize = bufferSize;
+    this.Dynamic = dynamic;
+  }
+};
+
+XNAToGL = class XNAToGL {
+};
+
+XNAToGL.IndexSize = [
+				2,	// EIndexElementSize.SixteenBits
+				4	// EIndexElementSize.ThirtyTwoBits
+];
+
+
+
 
 COpenGLDevice = class COpenGLDevice {
   constructor(presentationParameters, adapter)
@@ -3624,6 +3646,138 @@ COpenGLDevice = class COpenGLDevice {
     }
   }
 
+
+  /*public*/ /*IGLBuffer*/ GenVertexBuffer(
+    /*bool*/ dynamic,
+    /*int*/ vertexCount,
+    /*int*/ vertexStride
+  ) {
+    /*OpenGLBuffer*/ let result = null;
+
+    /*uint*/ let handle;
+    //glGenBuffers(1, out handle);
+    handle = this.gl.createBuffer();
+
+    result = new COpenGLBuffer(
+      handle,
+      /*(IntPtr)*/ (vertexStride * vertexCount),
+      dynamic ? this.gl.STREAM_DRAW : this.gl.STATIC_DRAW
+    );
+
+    this.BindVertexBuffer(result);
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      result.BufferSize,
+      //IntPtr.Zero,
+      result.Dynamic
+    );
+
+    return result;
+  }
+
+  /*public*/ /*IGLBuffer*/ GenIndexBuffer(
+    /*bool*/ dynamic,
+    /*int*/ indexCount,
+    /*IndexElementSize*/ indexElementSize = EIndexElementSize.SixteenBits
+  ) {
+    /*OpenGLBuffer*/ let result = null;
+
+    /*uint*/ let handle;
+    //glGenBuffers(1, out handle);
+    handle = this.gl.createBuffer();
+
+    result = new COpenGLBuffer(
+      handle,
+      /*(IntPtr)*/ (indexCount * XNAToGL.IndexSize[_int(indexElementSize)]),
+      dynamic ? this.gl.STREAM_DRAW : this.gl.STATIC_DRAW
+    );
+
+    this.BindIndexBuffer(result);
+    this.gl.bufferData(
+      this.gl.ELEMENT_ARRAY_BUFFER,
+      result.BufferSize,
+      //IntPtr.Zero,
+      result.Dynamic
+    );
+
+    return result;
+  }
+  
+  /*private*/ /*void*/ BindVertexBuffer(/*IGLBuffer*/ buffer)
+  {
+    //uint handle = (buffer as OpenGLBuffer).Handle;
+    let handle = buffer.Handle;
+    if (handle != this.currentVertexBuffer || this.Force)
+    {
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, handle);
+      this.currentVertexBuffer = handle;
+    }
+  }
+
+  /*private*/ /*void*/ BindIndexBuffer(/*IGLBuffer*/ buffer)
+  {
+    //uint handle = (buffer as OpenGLBuffer).Handle;
+    let handle = buffer.Handle;
+    if (handle != this.currentIndexBuffer || this.Force)
+    {
+      this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, handle);
+      this.currentIndexBuffer = handle;
+    }
+  }
+
+  /*public*/ /*void*/ SetVertexBufferData(
+    /*IGLBuffer*/ buffer,
+    /*int*/ offsetInBytes,
+    /*IntPtr*/ data,
+    /*int*/ dataLength,
+    /*SetDataOptions*/ options
+  ) {
+    this.BindVertexBuffer(buffer);
+
+    if (options === ESetDataOptions.Discard)
+    {
+      this.gl.bufferData(
+        this.gl.ARRAY_BUFFER,
+        buffer.BufferSize,
+        buffer.Dynamic
+      );
+    }
+
+    this.gl.bufferSubData(
+      this.gl.ARRAY_BUFFER,
+      offsetInBytes,
+      //dataLength,
+      data
+    );
+  }
+
+  /*public*/ /*void*/ SetIndexBufferData(
+    /*IGLBuffer*/ buffer,
+    /*int*/ offsetInBytes,
+    /*IntPtr*/ data,
+    /*int*/ dataLength,
+    /*SetDataOptions*/ options
+  ) {
+    this.BindIndexBuffer(buffer);
+
+    if (options === ESetDataOptions.Discard)
+    {
+      this.gl.bufferData(
+        this.gl.ELEMENT_ARRAY_BUFFER,
+        buffer.BufferSize,
+        buffer.Dynamic
+      );
+    }
+
+    this.gl.bufferSubData(
+      this.gl.ELEMENT_ARRAY_BUFFER,
+      /*(IntPtr)*/ offsetInBytes,
+      ///*(IntPtr)*/ dataLength,
+      data
+    );
+  }
+
+  get Force() { return true; }
 };
 
 CModernOpenGLDevice = class CModernOpenGLDevice {
@@ -4342,6 +4496,38 @@ ERenderTargetUsage = {
   HiDef: "EGraphicsProfile.HiDef",
 }
 
+/// <summary>
+/// Defines how vertex or index buffer data will be flushed during a SetData operation.
+/// </summary>
+ESetDataOptions = {
+  /// <summary>
+  /// The SetData can overwrite the portions of existing data.
+  /// </summary>
+  None: 0,
+  /// <summary>
+  /// The SetData will discard the entire buffer. A pointer to a new memory area is returned and rendering from the previous area do not stall.
+  /// </summary>
+  Discard: 1,
+  /// <summary>
+  /// The SetData operation will not overwrite existing data. This allows the driver to return immediately from a SetData operation and continue rendering.
+  /// </summary>
+  NoOverwrite: 2
+}
+
+/// <summary>
+/// Defines size for index in <see cref="IndexBuffer"/> and <see cref="DynamicIndexBuffer"/>.
+/// </summary>
+EIndexElementSize = {
+  /// <summary>
+  /// 16-bit short/ushort value been used.
+  /// </summary>
+  SixteenBits: 0,
+  /// <summary>
+  /// 32-bit int/uint value been used.
+  /// </summary>
+  ThirtyTwoBits: 1,
+}
+
 CGraphicsDeviceInformation = class CGraphicsDeviceInformation {
 };
 
@@ -4943,7 +5129,7 @@ CSpriteBatch = class CSpriteBatch {
 //     );
 //     this.indexBuffer = new IndexBuffer(
 //       graphicsDevice,
-//       IndexElementSize.SixteenBits,
+//       EIndexElementSize.SixteenBits,
 //       MAX_INDICES,
 //       BufferUsage.WriteOnly
 //     );
@@ -5080,7 +5266,7 @@ CSpriteBatch = class CSpriteBatch {
           0,
           /*(IntPtr)*/ sprite,
           VertexPositionColorTexture4.RealStride,
-          SetDataOptions.None
+          ESetDataOptions.None
         );
       }
       this.DrawPrimitives(texture, 0, 1);
@@ -5233,7 +5419,7 @@ CSpriteBatch = class CSpriteBatch {
         0,
         /*(IntPtr)*/ p,
         numSprites * VertexPositionColorTexture4.RealStride,
-        SetDataOptions.Discard
+        ESetDataOptions.Discard
       );
     }
 
