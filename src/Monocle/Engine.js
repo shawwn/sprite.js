@@ -390,6 +390,13 @@ CTexture2D = class CTexture2D extends CTexture {
     this.Unload();
     this.Handle = twgl.createTexture(this.gl, {
       src: data
+    }, (err, tex, img) => {
+      if (err == null) {
+        this.Width = img.width;
+        this.Height = img.height;
+      } else {
+        debugger;
+      }
     });
   }
 };
@@ -406,6 +413,8 @@ CVirtualTexture = class CVirtualTexture extends CVirtualAsset {
   CVirtualTexture1(/*string*/ path)
   {
     this.Name = this.Path = path;
+    this.Width = 0;
+    this.Height = 0;
     this.Reload();
   }
   CVirtualTexture4(/*string*/ name, /*int*/ width, /*int*/ height, /*Color*/ color)
@@ -451,7 +460,8 @@ CVirtualTexture = class CVirtualTexture extends CVirtualAsset {
     }
     else
     {
-      throw new CNotImplementedException();
+      this.Texture = new CTexture2D(CEngine.Instance.GraphicsDevice, this.Width, this.Height);
+      this.Texture.SetData(this.Path);
     }
   }
 };
@@ -1157,6 +1167,7 @@ CDraw = class CDraw {
     /*MTexture*/ let parent = new CMTexture(CVirtualContent.CreateTexture("debug-pixel", 3, 3, CColor.FromRGB(1.0, 0.0, 1.0)));
     CDraw.Pixel = new CMTexture(parent, 1, 1, 1, 1);
     CDraw.Particle = new CMTexture(parent, 1, 1, 1, 1);
+    CDraw.Font = new CMTexture(CVirtualContent.CreateTexture("../tests/celeste/Monocle/MonocleDefault.png"));
   }
 };
 
