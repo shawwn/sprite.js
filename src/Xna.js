@@ -3177,16 +3177,47 @@ CGame = class CGame extends IDisposable {
   {
   }
 
+  /*protected*/ /*virtual*/ /*void*/ Initialize()
+  {
+    // TODO
+    // /* According to the information given on MSDN, all GameComponents
+    //  * in Components at the time Initialize() is called are initialized:
+    //  *
+    //  * http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.game.initialize.aspx
+    //  *
+    //  * Note, however, that we are NOT using a foreach. It's actually
+    //  * possible to add something during initialization, and those must
+    //  * also be initialized. There may be a safer way to account for it,
+    //  * considering it may be possible to _remove_ components as well,
+    //  * but for now, let's worry about initializing everything we get.
+    //  * -flibit
+    //  */
+    // for (int i = 0; i < Components.Count; i += 1)
+    // {
+    //   Components[i].Initialize();
+    // }
+
+    /* FIXME: If this test fails, is LoadContent ever called?
+     * This seems like a condition that warrants an exception more
+     * than a silent failure.
+     */
+    if (	this.graphicsDeviceService != null &&
+      this.graphicsDeviceService.GraphicsDevice != null	)
+    {
+      this.graphicsDeviceService.DeviceDisposing["+="]((o, e) => this.UnloadContent(), this)
+      this.LoadContent();
+    }
+  }
+
   /*private*/ /*void*/ DoInitialize()
   {
     this.AssertNotDisposed();
 
+    this.InitializeGraphicsService();
+
+    this.Initialize();
+
     // TODO
-
-    // InitializeGraphicsService();
-
-    // Initialize();
-
     // /* We need to do this after virtual Initialize(...) is called.
     //  * 1. Categorize components into IUpdateable and IDrawable lists.
     //  * 2. Subscribe to Added/Removed events to keep the categorized
@@ -3203,6 +3234,20 @@ CGame = class CGame extends IDisposable {
     // Components.ComponentRemoved += OnComponentRemoved;
   }
 
+  /*private*/ /*GraphicsDevice*/ InitializeGraphicsService()
+  {
+    this.graphicsDeviceService = /*(IGraphicsDeviceService)*/this.Services.GetService(/*typeof*/("IGraphicsDeviceService"));
+
+    if (this.graphicsDeviceService == null)
+    {
+      throw new CInvalidOperationException(
+        "No Graphics Device Service"
+      );
+    }
+
+    // This will call IGraphicsDeviceManager.CreateDevice
+    return this.graphicsDeviceService.GraphicsDevice;
+  }
 
   /*public*/ /*void*/ async RunOneFrame()
   {

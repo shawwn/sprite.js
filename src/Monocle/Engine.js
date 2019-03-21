@@ -315,8 +315,27 @@ CPath = class CPath
 };
 
 MInput = class MInput {
+  static Initialize() {
+  }
+
   static async Update() {
   }
+};
+
+CTracker = class CTracker {
+  static Initialize() {
+  }
+};
+
+CVirtualContent = class CVirtualContent {
+  static Reload() {
+  }
+};
+
+CPooler = class CPooler {
+};
+
+CCommands = class CCommands {
 };
 
 CEngine = class CEngine extends CGame {
@@ -358,6 +377,29 @@ CEngine = class CEngine extends CGame {
   {
     return "//"; // TODO
   }
+
+  /*protected*/ /*override*/ /*void*/ Initialize()
+  {
+    super.Initialize();
+    MInput.Initialize();
+    CTracker.Initialize();
+    CEngine.Pooler = new CPooler();
+    CEngine.Commands = new CCommands();
+  }
+
+  /*protected*/ /*override*/ /*void*/ LoadContent()
+  {
+    super.LoadContent();
+    CVirtualContent.Reload();
+    CDraw.Initialize(this.GraphicsDevice);
+  }
+
+  /*protected*/ /*override*/ /*void*/ UnloadContent()
+  {
+    super.UnloadContent();
+    CVirtualContent.Unload();
+  }
+
 
   /*protected*/ /*override*/ /*void*/ async Update(/*GameTime*/ gameTime)
   {
