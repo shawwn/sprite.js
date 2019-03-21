@@ -387,7 +387,7 @@ CCeleste = class CCeleste extends CEngine {
     update(gameTime.TotalGameTime.TotalMilliseconds);
     this.UpdateCount += 1;
     this.FPSTicks["+="](gameTime.ElapsedGameTime);
-    if (this.FPSTicks.TotalSeconds > 1.0) {
+    if (this.FPSTicks.TotalSeconds > 10.0) {
       console.log(`FPS: draw(${this.FrameCount}) update(${this.UpdateCount})`);
       this.FrameCount = 0;
       this.UpdateCount = 0;
