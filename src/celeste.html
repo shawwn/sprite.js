@@ -321,7 +321,7 @@ CCeleste = class CCeleste extends CEngine {
   }
 
   async Draw() {
-    await CThread.Sleep(randi(100));
+    //await CThread.Sleep(randi(100));
     this.FrameCount += 1;
     await super.Draw();
     render();

@@ -2537,12 +2537,6 @@ CColor = class CColor {
   }
 }
 
-IDisposable = class IDisposable {
-  Dispose() {
-    throw new Error("Not implemented");
-  }
-}
-
 CEventArgs = class CEventArgs {
   /*public*/ static /*readonly*/ /*EventArgs*/ get Empty(){
     if (CEventArgs.INTERNAL_Empty == null)
@@ -3305,4 +3299,371 @@ CFNAPlatform = class CFNAPlatform {
 			// We out.
 			game.Exit();
 		}
+};
+
+/// <summary>
+/// Defines sprite sort rendering options.
+/// </summary>
+ESpriteSortMode = {
+  /// <summary>
+  /// All sprites are drawing when <see cref="SpriteBatch.End"/> invokes, in order of draw call sequence. Depth is ignored.
+  /// </summary>
+  Deferred: 0,
+  /// <summary>
+  /// Each sprite is drawing at individual draw call, instead of <see cref="SpriteBatch.End"/>. Depth is ignored.
+  /// </summary>
+  Immediate: 1,
+  /// <summary>
+  /// Same as <see cref="SpriteSortMode.Deferred"/>, except sprites are sorted by texture prior to drawing. Depth is ignored.
+  /// </summary>
+  Texture: 2,
+  /// <summary>
+  /// Same as <see cref="SpriteSortMode.Deferred"/>, except sprites are sorted by depth in back-to-front order prior to drawing.
+  /// </summary>
+  BackToFront: 3,
+  /// <summary>
+  /// Same as <see cref="SpriteSortMode.Deferred"/>, except sprites are sorted by depth in front-to-back order prior to drawing.
+  /// </summary>
+  FrontToBack: 4
+}
+
+
+CSpriteBatch = class CSpriteBatch {
+
+  // As defined by the HiDef profile spec
+  //private const int MAX_SPRITES = 2048;
+  //private const int MAX_VERTICES = MAX_SPRITES * 4;
+  //private const int MAX_INDICES = MAX_SPRITES * 6;
+  static get MAX_SPRITES() { return 2048; }
+  static get MAX_VERTICES() { return CSpriteBatch.MAX_SPRITES * 4; }
+  static get MAX_INDICES() { return CSpriteBatch.MAX_SPRITES * 6; }
+
+  /*public*/ /*SpriteBatch*/ constructor(/*GraphicsDevice*/ graphicsDevice)
+  {
+    // if (graphicsDevice == null)
+    // {
+    //   throw new CArgumentNullException("graphicsDevice");
+    // }
+    this.GraphicsDevice = graphicsDevice;
+
+//     this.vertexInfo = new VertexPositionColorTexture4[MAX_SPRITES];
+//     this.textureInfo = new Texture2D[MAX_SPRITES];
+//     this.spriteInfos = new SpriteInfo[MAX_SPRITES];
+//     this.sortedSpriteInfos = new IntPtr[MAX_SPRITES];
+//     this.vertexBuffer = new DynamicVertexBuffer(
+//       graphicsDevice,
+//       typeof(VertexPositionColorTexture),
+//       MAX_VERTICES,
+//       BufferUsage.WriteOnly
+//     );
+//     this.indexBuffer = new IndexBuffer(
+//       graphicsDevice,
+//       IndexElementSize.SixteenBits,
+//       MAX_INDICES,
+//       BufferUsage.WriteOnly
+//     );
+//     indexBuffer.SetData(indexData);
+
+//     this.spriteEffect = new Effect(
+//       graphicsDevice,
+//       spriteEffectCode
+//     );
+//     this.spriteMatrixTransform = spriteEffect.Parameters["MatrixTransform"].values;
+//     this.spriteEffectPass = spriteEffect.CurrentTechnique.Passes[0];
+
+    this.beginCalled = false;
+    this.numSprites = 0;
+  }
+
+
+  /*public*/ /*void*/ Draw(
+    /*Texture2D*/ texture,
+    /*Vector2*/ position,
+    /*Rectangle?*/ sourceRectangle,
+    /*Color*/ color,
+    /*float*/ rotation,
+    /*Vector2*/ origin,
+    /*float*/ scale,
+    /*SpriteEffects*/ effects,
+    /*float*/ layerDepth
+  ) {
+    this.CheckBegin("Draw");
+    /*float*/ let sourceX, sourceY, sourceW, sourceH;
+    /*float*/ let destW = scale;
+    /*float*/ let destH = scale;
+    if (sourceRectangle != null)
+    {
+      sourceX = sourceRectangle.X / /*(float)*/ texture.Width;
+      sourceY = sourceRectangle.Y / /*(float)*/ texture.Height;
+      sourceW = CMath.Sign(sourceRectangle.Width) * CMath.Max(
+        CMath.Abs(sourceRectangle.Width),
+        CMathHelper.MachineEpsilonFloat
+      ) / /*(float)*/ texture.Width;
+      sourceH = CMath.Sign(sourceRectangle.Height) * CMath.Max(
+        CMath.Abs(sourceRectangle.Height),
+        CMathHelper.MachineEpsilonFloat
+      ) / /*(float)*/ texture.Height;
+      destW *= sourceRectangle.Width;
+      destH *= sourceRectangle.Height;
+    }
+    else
+    {
+      sourceX = 0.0;
+      sourceY = 0.0;
+      sourceW = 1.0;
+      sourceH = 1.0;
+      destW *= texture.Width;
+      destH *= texture.Height;
+    }
+    this.PushSprite(
+      texture,
+      sourceX,
+      sourceY,
+      sourceW,
+      sourceH,
+      position.X,
+      position.Y,
+      destW,
+      destH,
+      color,
+      origin.X / sourceW / /*(float)*/ texture.Width,
+      origin.Y / sourceH / /*(float)*/ texture.Height,
+      /*(float)*/ CMath.Sin(rotation),
+      /*(float)*/ CMath.Cos(rotation),
+      layerDepth,
+      /*(byte)*/ (effects & /*(ESpriteEffects)*/ 0x03)
+    );
+  }
+
+  /*private*/ /*unsafe*/ /*void*/ PushSprite(
+    /*Texture2D*/ texture,
+    /*float*/ sourceX,
+    /*float*/ sourceY,
+    /*float*/ sourceW,
+    /*float*/ sourceH,
+    /*float*/ destinationX,
+    /*float*/ destinationY,
+    /*float*/ destinationW,
+    /*float*/ destinationH,
+    /*Color*/ color,
+    /*float*/ originX,
+    /*float*/ originY,
+    /*float*/ rotationSin,
+    /*float*/ rotationCos,
+    /*float*/ depth,
+    /*byte*/ effects
+  ) {
+    if (this.numSprites >= CSpriteBatch.MAX_SPRITES)
+    {
+      // Oh crap, we're out of space, flush!
+      this.FlushBatch();
+    }
+
+    if (this.sortMode === ESpriteSortMode.Immediate)
+    {
+      //fixed (VertexPositionColorTexture4* sprite = &vertexInfo[0])
+      {
+        let sprite = this.vertexInfo;
+        this.GenerateVertexInfo(
+          sprite,
+          sourceX,
+          sourceY,
+          sourceW,
+          sourceH,
+          destinationX,
+          destinationY,
+          destinationW,
+          destinationH,
+          color,
+          originX,
+          originY,
+          rotationSin,
+          rotationCos,
+          depth,
+          effects
+        );
+
+        /* We do NOT use Discard here because
+         * it would be stupid to reallocate the
+         * whole buffer just for one sprite.
+         *
+         * Unless you're using this to blit a
+         * target, stop using Immediate ya donut
+         * -flibit
+         */
+        this.vertexBuffer.SetDataPointerEXT(
+          0,
+          /*(IntPtr)*/ sprite,
+          VertexPositionColorTexture4.RealStride,
+          SetDataOptions.None
+        );
+      }
+      this.DrawPrimitives(texture, 0, 1);
+    }
+    else if (sortMode == SpriteSortMode.Deferred)
+    {
+      //fixed (VertexPositionColorTexture4* sprite = &vertexInfo[numSprites])
+      {
+        let sprite = this.vertexInfo[this.numSprites];
+        this.GenerateVertexInfo(
+          sprite,
+          sourceX,
+          sourceY,
+          sourceW,
+          sourceH,
+          destinationX,
+          destinationY,
+          destinationW,
+          destinationH,
+          color,
+          originX,
+          originY,
+          rotationSin,
+          rotationCos,
+          depth,
+          effects
+        );
+      }
+
+      textureInfo[numSprites] = texture;
+      numSprites += 1;
+    }
+    else
+    {
+      //fixed (SpriteInfo* spriteInfo = &spriteInfos[numSprites])
+      {
+        let spriteInfo = this.spriteInfos[this.numSprites];
+        spriteInfo.textureHash = texture.GetHashCode();
+        spriteInfo.sourceX = sourceX;
+        spriteInfo.sourceY = sourceY;
+        spriteInfo.sourceW = sourceW;
+        spriteInfo.sourceH = sourceH;
+        spriteInfo.destinationX = destinationX;
+        spriteInfo.destinationY = destinationY;
+        spriteInfo.destinationW = destinationW;
+        spriteInfo.destinationH = destinationH;
+        spriteInfo.color = color;
+        spriteInfo.originX = originX;
+        spriteInfo.originY = originY;
+        spriteInfo.rotationSin = rotationSin;
+        spriteInfo.rotationCos = rotationCos;
+        spriteInfo.depth = depth;
+        spriteInfo.effects = effects;
+      }
+
+      textureInfo[numSprites] = texture;
+      numSprites += 1;
+    }
+  }
+
+  /*private*/ /*unsafe*/ /*void*/ FlushBatch()
+  {
+    /*int*/ let offset = 0;
+    /*Texture2D*/ let curTexture = null;
+
+    this.PrepRenderState();
+
+    if (this.numSprites == 0)
+    {
+      // Nothing to do.
+      return;
+    }
+
+    if (this.sortMode !== ESpriteSortMode.Deferred)
+    {
+      /*IComparer<IntPtr>*/ let comparer;
+      if (this.sortMode === ESpriteSortMode.Texture)
+      {
+        comparer = TextureCompare;
+      }
+      else if (this.sortMode === SpriteSortMode.BackToFront)
+      {
+        comparer = BackToFrontCompare;
+      }
+      else
+      {
+        comparer = FrontToBackCompare;
+      }
+      //fixed (SpriteInfo* spriteInfo = &spriteInfos[0])
+      {
+        let spriteInfo = this.spriteInfos;
+        //fixed (IntPtr* sortedSpriteInfo = &sortedSpriteInfos[0])
+        {
+          let sortedSpriteInfo = this.sortedSpriteInfo;
+          //fixed (VertexPositionColorTexture4* sprites = &vertexInfo[0])
+          {
+            let sprites = this.vertexInfo;
+            for (/*int*/ let i = 0; i < this.numSprites; i += 1)
+            {
+              sortedSpriteInfo[i] = spriteInfo[i]; //(IntPtr) (&spriteInfo[i]);
+            }
+            CArray.Sort(
+              sortedSpriteInfos,
+              textureInfo,
+              0,
+              numSprites,
+              comparer
+            );
+            for (/*int*/ let i = 0; i < this.numSprites; i += 1)
+            {
+              //SpriteInfo* info = (SpriteInfo*) sortedSpriteInfo[i];
+              let info = this.sortedSpriteInfo[i];
+              this.GenerateVertexInfo(
+                sprites[i],
+                info.sourceX,
+                info.sourceY,
+                info.sourceW,
+                info.sourceH,
+                info.destinationX,
+                info.destinationY,
+                info.destinationW,
+                info.destinationH,
+                info.color,
+                info.originX,
+                info.originY,
+                info.rotationSin,
+                info.rotationCos,
+                info.depth,
+                info.effects
+              );
+            }
+          }
+        }
+      }
+    }
+
+    //fixed (VertexPositionColorTexture4* p = &vertexInfo[0])
+    {
+      let p = this.vertexInfo;
+      /* We use Discard here because the last batch
+       * may still be executing, and we can't always
+       * trust the driver to use a staging buffer for
+       * buffer uploads that overlap between commands.
+       *
+       * If you aren't using the whole vertex buffer,
+       * that's your own fault. Use the whole buffer!
+       * -flibit
+       */
+      vertexBuffer.SetDataPointerEXT(
+        0,
+        /*(IntPtr)*/ p,
+        numSprites * VertexPositionColorTexture4.RealStride,
+        SetDataOptions.Discard
+      );
+    }
+
+    curTexture = textureInfo[0];
+    for (/*int*/ let i = 1; i < numSprites; i += 1)
+    {
+      if (textureInfo[i] != curTexture)
+      {
+        this.DrawPrimitives(curTexture, offset, i - offset);
+        curTexture = textureInfo[i];
+        offset = i;
+      }
+    }
+    this.DrawPrimitives(curTexture, offset, numSprites - offset);
+
+    this.numSprites = 0;
+  }
 };

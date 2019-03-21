@@ -505,3 +505,9 @@ CStopwatch = class CStopwatch
     this.is_running = true;
   }
 };
+
+IDisposable = class IDisposable {
+  Dispose(disposing) {
+    throw new Error("Not implemented");
+  }
+}
