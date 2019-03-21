@@ -511,3 +511,68 @@ IDisposable = class IDisposable {
     throw new Error("Not implemented");
   }
 }
+
+EventHandlerClass = class EventHandlerClass {
+	constructor(options) {
+		return eventHandlerFactory(options);
+	}
+}
+
+
+const eventHandlerFactory = options => {
+	const eventHandler = {handlers: []};
+
+	eventHandler.send = (sender, args) => eventHandlerTag(eventHandler.send, sender, args);
+
+	Object.setPrototypeOf(eventHandler, EventHandler.prototype);
+	Object.setPrototypeOf(eventHandler.send, eventHandler);
+
+	eventHandler.send.constructor = () => {
+		throw new Error('`eventHandler.constructor()` is deprecated. Use `new eventHandler.Instance()` instead.');
+	};
+
+	eventHandler.send.Instance = EventHandlerClass;
+
+	return eventHandler.send;
+};
+
+function EventHandler(options) {
+	return eventHandlerFactory(options);
+}
+
+EventHandler.prototype["+="] = function Add(f, me) {
+  this.handlers.push({f, me});
+  return this;
+}
+
+EventHandler.prototype["-="] = function Rem(f, me) {
+  let idx = -1;
+  for (let i = 0; i < this.handlers.length; i++) {
+    let x = this.handlers[i];
+    if (x.f === f && x.me === me) {
+      idx = i;
+    }
+  }
+  if (idx >= 0) {
+    this.handlers.splice(idx, 1);
+  } else {
+    throw new Error("Couldn't remove delegate from EventHandler");
+  }
+  return this;
+}
+
+function eventHandlerTag(me, sender, args) {
+  //console.log('eventHandlerTag', me, sender, args);
+  for (let x of me.handlers) {
+    x.f.call(x.me, sender, args);
+  }
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = EventHandler;
+}
+if (typeof window !== 'undefined') {
+  window.EventHandler = EventHandler;
+}
+
+

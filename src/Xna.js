@@ -2556,6 +2556,10 @@ CGame = class CGame extends IDisposable {
   constructor() {
     super();
 
+    this.Exiting = new EventHandler()
+    this.Activated = new EventHandler()
+    this.Deactivated = new EventHandler()
+
     // AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
     // LaunchParameters = new LaunchParameters();

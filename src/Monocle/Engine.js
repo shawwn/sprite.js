@@ -314,19 +314,34 @@ CPath = class CPath
   }
 };
 
+MInput = class MInput {
+  static async Update() {
+  }
+};
+
 CEngine = class CEngine extends CGame {
   constructor() {
     super();
+
     CEngine.Instance = this;
+  }
+
+  static get Instance() {
+    return CEngine.INTERNAL_Instance;
+  }
+
+  static set Instance(value) {
+    CEngine.INTERNAL_Instance = value;
+    CEngine.viewPadding = 0;
+    CEngine.TimeRate = 1;
+    CEngine.TimeRateB = 1;
+    CEngine.FreezeTimer = 0.0;
   }
 
   static get AssemblyDirectory()
   {
     return "//"; // TODO
   }
-
-  static get RawDeltaTime() { return 1.0/128; }
-  static get DeltaTime() { return 1.0/128; }
 
   get ContentDirectory()
   {
@@ -336,6 +351,55 @@ CEngine = class CEngine extends CGame {
   get ContentRootDirectory()
   {
     return "//"; // TODO
+  }
+
+  /*protected*/ /*override*/ /*void*/ async Update(/*GameTime*/ gameTime)
+  {
+    CEngine.RawDeltaTime = /*(float)*/ gameTime.ElapsedGameTime.TotalSeconds;
+    CEngine.DeltaTime = CEngine.RawDeltaTime * CEngine.TimeRate * CEngine.TimeRateB;
+    await MInput.Update();
+    if (CEngine.ExitOnEscapeKeypress && MInput.Keyboard.Pressed(Keys.Escape))
+      this.Exit();
+    else if (CEngine.OverloadGameLoop != null)
+    {
+      CEngine.OverloadGameLoop();
+      await super.Update(gameTime);
+    }
+    else
+    {
+      if (/*(double)*/ CEngine.FreezeTimer > 0.0)
+        CEngine.FreezeTimer = CMath.Max(CEngine.FreezeTimer - CEngine.RawDeltaTime, 0.0);
+      else if (this.scene != null)
+      {
+        this.scene.BeforeUpdate();
+        this.scene.Update();
+        this.scene.AfterUpdate();
+      }
+      /* TODO
+      if (CEngine.Commands.Open)
+        CEngine.Commands.UpdateOpen();
+      else if (CEngine.Commands.Enabled)
+        CEngine.Commands.UpdateClosed();
+        */
+      if (this.scene !== this.nextScene)
+      {
+        /*Scene*/ let scene = this.scene;
+        if (this.scene != null)
+          this.scene.End();
+        this.scene = this.nextScene;
+        this.OnSceneTransition(scene, this.nextScene);
+        if (this.scene != null)
+          this.scene.Begin();
+      }
+      await super.Update(gameTime);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnSceneTransition(/*Scene*/ from, /*Scene*/ to)
+  {
+    //GC.Collect();
+    //GC.WaitForPendingFinalizers();
+    CEngine.TimeRate = 1;
   }
 };
 
@@ -749,4 +813,22 @@ CVirtualAsset = /*abstract*/ class CVirtualAsset {
   {
   }
 }
+
+CDraw = class CDraw {
+
+  /*internal*/ static /*void*/ Initialize(/*GraphicsDevice*/ graphicsDevice)
+  {
+    CDraw.SpriteBatch = new CSpriteBatch(graphicsDevice);
+    //CDraw.DefaultFont = CEngine.Instance.Content.Load<SpriteFont>("Monocle\\MonocleDefault"); // TODO
+    CDraw.UseDebugPixelTexture();
+  }
+
+  /*public*/ static /*void*/ UseDebugPixelTexture()
+  {
+    // TODO
+    // /*MTexture*/ let parent = new MTexture(CVirtualContent.CreateTexture("debug-pixel", 3, 3, Color.White));
+    // Draw.Pixel = new MTexture(parent, 1, 1, 1, 1);
+    // Draw.Particle = new MTexture(parent, 1, 1, 1, 1);
+  }
+};
 
