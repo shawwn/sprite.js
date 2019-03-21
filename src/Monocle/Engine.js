@@ -385,12 +385,12 @@ CTexture2D = class CTexture2D extends CTexture {
     this.Handle = null;
   }
 
-  SetData(data)
+  SetData(data, opts = {min: this.gl.LINEAR, mag: this.gl.NEAREST})
   {
     this.Unload();
-    this.Handle = twgl.createTexture(this.gl, {
-      src: data
-    }, (err, tex, img) => {
+    this.Handle = twgl.createTexture(this.gl,
+      Object.assign({ src: data }, opts),
+      (err, tex, img) => {
       if (err == null) {
         this.Width = img.width;
         this.Height = img.height;
