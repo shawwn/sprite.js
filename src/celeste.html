@@ -154,13 +154,13 @@ void main() {
         position: {
           numComponents: 2,
           data: XYQuadPositions(size, xOffset, yOffset),
-          drawType: gl.STREAM_DRAW,
+          drawType: gl.DYNAMIC_DRAW,
         },
         normal: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
         texcoord: {
           numComponents: 2,
           data: [0, 0, 1, 0, 0, 1, 1, 1],
-          drawType: gl.STREAM_DRAW,
+          drawType: gl.DYNAMIC_DRAW,
         },
         indices: [0, 1, 2, 2, 1, 3]
       };
@@ -338,6 +338,7 @@ function createAnims(baseOpts, opts) {
 
   function render() {
     twgl.resizeCanvasToDisplaySize(gl.canvas);
+    
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     gl.enable(gl.DEPTH_TEST);
@@ -456,11 +457,13 @@ CCeleste = class CCeleste extends CEngine {
     update(gameTime.TotalGameTime.TotalMilliseconds);
     this.UpdateCount += 1;
     this.FPSTicks["+="](gameTime.ElapsedGameTime);
-    if (this.FPSTicks.TotalSeconds > 100.0) {
+    if (this.FPSTicks.TotalSeconds > 1.0) {
       console.log(`FPS: draw(${this.FrameCount}) update(${this.UpdateCount})`);
       this.FrameCount = 0;
       this.UpdateCount = 0;
       this.FPSTicks = CTimeSpan.Zero;
+    }
+    if (gameTime.TotalGameTime.TotalSeconds > 100.0) {
       this.Exit();
     }
   }

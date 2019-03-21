@@ -525,6 +525,14 @@ CEngine = class CEngine extends CGame {
     super(nativeWindow, display);
 
     CEngine.Instance = this;
+    CEngine.Graphics = new CGraphicsDeviceManager(this);
+    CEngine.Graphics.DeviceReset["+="](this.OnGraphicsReset, this);
+    CEngine.Graphics.DeviceCreated["+="](this.OnGraphicsCreate, this);
+    CEngine.Graphics.ApplyChanges();
+
+    let bounds = this.Window.ClientBounds;
+    CEngine.Width = bounds.Width;
+    CEngine.Height = bounds.Height;
   }
 
   get GraphicsDevice() {
@@ -545,8 +553,17 @@ CEngine = class CEngine extends CGame {
       CEngine.FreezeTimer = 0.0;
       CEngine.ClearColor = CColor.Black;
       value.InactiveSleepTime = CTimeSpan.Zero;
-      CEngine.Graphics = new CGraphicsDeviceManager(value);
     }
+  }
+
+  //static get Width() { return CEngine.Instsance.Window.ClientBounds.Width; }
+  //static get Height() { return CEngine.Instsance.Window.ClientBounds.Height; }
+
+  static get ViewPadding() { return CEngine.viewPadding; }
+  static set ViewPadding(value) 
+  {
+    CEngine.viewPadding = value;
+    CEngine.Instance.UpdateView();
   }
 
   static get AssemblyDirectory()
@@ -586,6 +603,18 @@ CEngine = class CEngine extends CGame {
     CVirtualContent.Unload();
   }
 
+  /*protected*/ /*override*/ /*void*/ async BeginDraw()
+  {
+    if (this.Window.ClientBounds.Width !== CEngine.Width || 
+      this.Window.ClientBounds.Height !== CEngine.Height)
+    {
+      CEngine.Graphics.ApplyChanges();
+    }
+    let bounds = this.Window.ClientBounds;
+    CEngine.Width = bounds.Width;
+    CEngine.Height = bounds.Height;
+    return await super.BeginDraw();
+  }
 
   /*protected*/ /*override*/ /*void*/ async Update(/*GameTime*/ gameTime)
   {
@@ -634,6 +663,54 @@ CEngine = class CEngine extends CGame {
     //GC.Collect();
     //GC.WaitForPendingFinalizers();
     CEngine.TimeRate = 1;
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnGraphicsReset(/*object*/ sender, /*EventArgs*/ e)
+  {
+    this.UpdateView();
+    if (this.scene != null)
+      this.scene.HandleGraphicsReset();
+    if (this.nextScene == null || this.nextScene === this.scene)
+      return;
+    this.nextScene.HandleGraphicsReset();
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnGraphicsCreate(/*object*/ sender, /*EventArgs*/ e)
+  {
+    this.UpdateView();
+    if (this.scene != null)
+      this.scene.HandleGraphicsCreate();
+    if (this.nextScene == null || this.nextScene === this.scene)
+      return;
+    this.nextScene.HandleGraphicsCreate();
+  }
+
+
+  /*private*/ /*void*/ UpdateView()
+  {
+    /*float*/ let backBufferWidth = /*(float)*/ this.GraphicsDevice.PresentationParameters.BackBufferWidth;
+    /*float*/ let backBufferHeight = /*(float)*/ this.GraphicsDevice.PresentationParameters.BackBufferHeight;
+    if (/*(double)*/ backBufferWidth / /*(double)*/ CEngine.Width > /*(double)*/ backBufferHeight / /*(double)*/ CEngine.Height)
+    {
+      CEngine.ViewWidth = _int(/*(double)*/ backBufferHeight / /*(double)*/ CEngine.Height * /*(double)*/ CEngine.Width);
+      CEngine.ViewHeight = _int(backBufferHeight);
+    }
+    else
+    {
+      CEngine.ViewWidth = _int(backBufferWidth);
+      CEngine.ViewHeight = _int(/*(double)*/ backBufferWidth / /*(double)*/ CEngine.Width * /*(double)*/ CEngine.Height);
+    }
+    /*float*/ let num = /*(float)*/ CEngine.ViewHeight / /*(float)*/ CEngine.ViewWidth;
+    CEngine.ViewWidth -= CEngine.ViewPadding * 2;
+    CEngine.ViewHeight -= _int(/*(double)*/ num * /*(double)*/ CEngine.ViewPadding * 2.0);
+    CEngine.ScreenMatrix = CMatrix.CreateScale(/*(float)*/ CEngine.ViewWidth / /*(float)*/ CEngine.Width);
+    CEngine.Viewport = new CViewport(
+      _int(/*(double)*/ backBufferWidth / 2.0 - /*(double)*/ (CEngine.ViewWidth / 2)),
+      _int(/*(double)*/ backBufferHeight / 2.0 - /*(double)*/ (CEngine.ViewHeight / 2)),
+      CEngine.ViewWidth,
+      CEngine.ViewHeight,
+      0.0,
+      1.0);
   }
 };
 

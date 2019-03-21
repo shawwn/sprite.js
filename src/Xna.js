@@ -736,6 +736,25 @@ CViewport = class CViewport {
   /// <param name="y">The y coordinate of the upper-left corner of the view bounds in pixels.</param>
   /// <param name="width">The width of the view bounds in pixels.</param>
   /// <param name="height">The height of the view bounds in pixels.</param>
+  /// <param name="minDepth">The minimum depth of the view bounds.</param>
+  /// <param name="maxDepth">The maximum depth of the view bounds.</param>
+  /*public*/ CViewport6(/*int*/ x, /*int*/ y, /*int*/ width, /*int*/ height, /*float*/ minDepth, /*float*/ maxDepth)
+  {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.minDepth = minDepth;
+    this.maxDepth = maxDepth;
+  }
+
+  /// <summary>
+  /// Constructs a viewport from the given values. The <see cref="MinDepth"/> will be 0.0 and <see cref="MaxDepth"/> will be 1.0.
+  /// </summary>
+  /// <param name="x">The x coordinate of the upper-left corner of the view bounds in pixels.</param>
+  /// <param name="y">The y coordinate of the upper-left corner of the view bounds in pixels.</param>
+  /// <param name="width">The width of the view bounds in pixels.</param>
+  /// <param name="height">The height of the view bounds in pixels.</param>
   /*public*/ CViewport4(/*int*/ x, /*int*/ y, /*int*/ width, /*int*/ height)
   {
     this.x = x;
@@ -765,6 +784,7 @@ CViewport = class CViewport {
     switch(args.length) {
       case 1: this.CViewport1(...args); break;
       case 4: this.CViewport4(...args); break;
+      case 6: this.CViewport6(...args); break;
       default: throw new CArgumentException("Invalid argument count");
     }
   }
@@ -4773,15 +4793,8 @@ CPreparingDeviceSettingsEventArgs = class CPreparingDeviceSettingsEventArgs {
 };
 
 CGraphicsDeviceManager = class CGraphicsDeviceManager {
-  static get DefaultBackBufferWidth()
-  {
-    return 800;
-  }
-
-  static get DefaultBackBufferHeight()
-  {
-    return 600;
-  }
+  static get DefaultBackBufferWidth() { return 800; }
+  static get DefaultBackBufferHeight() { return 600; }
 
   /*public*/ /*GraphicsDeviceManager*/ constructor(/*Game*/ game)
   {
@@ -4814,8 +4827,8 @@ CGraphicsDeviceManager = class CGraphicsDeviceManager {
 
     this.supportedOrientations = EDisplayOrientation.Default;
 
-    this.PreferredBackBufferHeight = CGraphicsDeviceManager.DefaultBackBufferHeight;
     this.PreferredBackBufferWidth = CGraphicsDeviceManager.DefaultBackBufferWidth;
+    this.PreferredBackBufferHeight = CGraphicsDeviceManager.DefaultBackBufferHeight;
 
     this.PreferredBackBufferFormat = ESurfaceFormat.Color;
     this.PreferredDepthStencilFormat = EDepthFormat.Depth24;
@@ -4944,6 +4957,11 @@ CGraphicsDeviceManager = class CGraphicsDeviceManager {
         }
       }
     }
+
+    let rect = CFNAPlatform.GetWindowBounds(gdi.PresentationParameters.DeviceWindowHandle);
+    gdi.PresentationParameters.BackBufferWidth = rect.Width;
+    gdi.PresentationParameters.BackBufferHeight = rect.Height;
+
     gdi.PresentationParameters.DepthStencilFormat = this.PreferredDepthStencilFormat;
     gdi.PresentationParameters.IsFullScreen = this.IsFullScreen;
     if (!this.PreferMultiSampling)
@@ -5205,6 +5223,56 @@ CVertexPositionColorTexture4 = class CVertexPositionColorTexture4
   get Position3()          { return new Float32Array(this.Buffer, this.ByteOffset + 3*(3*4 + 4 + 2*4), 3); }
   get Color3()             { return new Uint8Array  (this.Buffer, this.ByteOffset + 3*(3*4 + 4 + 2*4) + 3*4, 4); }
   get TextureCoordinate3() { return new Float32Array(this.Buffer, this.ByteOffset + 3*(3*4 + 4 + 2*4) + 3*4 + 4, 2); }
+}
+
+CInterleavedVertexPositionColorTexture4 = class CInterleavedVertexPositionColorTexture4
+{
+  //public const int RealStride = 96;
+  static get RealStride()     { return 96; }
+  static get PositionStride() { return 3*Float32Array.BYTES_PER_ELEMENT; }
+  static get ColorStride()    { return 2*Uint8Array.BYTES_PER_ELEMENT; }
+  static get TexcoordStride() { return 2*Float32Array.BYTES_PER_ELEMENT; }
+  get RealStride()     { return 96; }
+  get PositionStride() { return 3*Float32Array.BYTES_PER_ELEMENT; }
+  get ColorStride()    { return 2*Uint8Array.BYTES_PER_ELEMENT; }
+  get TexcoordStride() { return 2*Float32Array.BYTES_PER_ELEMENT; }
+
+  /*
+  VertexDeclaration IVertexType.VertexDeclaration
+  {
+    get
+    {
+      throw new NotImplementedException();
+    }
+  }
+  */
+
+  constructor(positionBuffer, colorBuffer, texcoordBuffer, offset) {
+    this.Buffers = {
+      Position: positionBuffer,
+      Color: colorBuffer,
+      Texcoord: texcoordBuffer,
+    }
+    this.Offset = offset;
+  }
+
+  get ByteOffset()         { return this.RealStride * this.Offset; }
+  get PositionByteOffset() { return 4 * this.PositionStride * this.Offset; }
+  get ColorByteOffset()    { return 4 * this.ColorStride * this.Offset; }
+  get TexcoordByteOffset() { return 4 * this.TexcoordStride * this.Offset; }
+
+  get Position0()          { return new Float32Array(this.Buffers.Position, this.PositionByteOffset + 0*(this.PositionStride), 3); }
+  get Position1()          { return new Float32Array(this.Buffers.Position, this.PositionByteOffset + 1*(this.PositionStride), 3); }
+  get Position2()          { return new Float32Array(this.Buffers.Position, this.PositionByteOffset + 2*(this.PositionStride), 3); }
+  get Position3()          { return new Float32Array(this.Buffers.Position, this.PositionByteOffset + 3*(this.PositionStride), 3); }
+  get Color0()             { return new Uint8Array  (this.Buffers.Color,    this.ColorByteOffset    + 0*(this.ColorStride   ), 4); }
+  get Color1()             { return new Uint8Array  (this.Buffers.Color,    this.ColorByteOffset    + 1*(this.ColorStride   ), 4); }
+  get Color2()             { return new Uint8Array  (this.Buffers.Color,    this.ColorByteOffset    + 2*(this.ColorStride   ), 4); }
+  get Color3()             { return new Uint8Array  (this.Buffers.Color,    this.ColorByteOffset    + 3*(this.ColorStride   ), 4); }
+  get TextureCoordinate0() { return new Float32Array(this.Buffers.Texcoord, this.TexcoordByteOffset + 0*(this.TexcoordStride), 2); }
+  get TextureCoordinate1() { return new Float32Array(this.Buffers.Texcoord, this.TexcoordByteOffset + 1*(this.TexcoordStride), 2); }
+  get TextureCoordinate2() { return new Float32Array(this.Buffers.Texcoord, this.TexcoordByteOffset + 2*(this.TexcoordStride), 2); }
+  get TextureCoordinate3() { return new Float32Array(this.Buffers.Texcoord, this.TexcoordByteOffset + 3*(this.TexcoordStride), 2); }
 }
 
 
