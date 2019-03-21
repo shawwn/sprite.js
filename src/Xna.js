@@ -358,6 +358,7 @@ CMath = class CMath {
   static Atan(x) { return Math.atan(x); }
   static Sqrt(x) { return Math.sqrt(x); }
   static Sign(x) { return Math.sign(x); }
+  static Clamp(a, b, t) { return Math.max(a, Math.min(b, t)); }
 };
 
 CMathHelper = class CMathHelper {
@@ -746,6 +747,21 @@ CVector2 = class CVector2 {
     this.Y = y;
   }
 
+  Clone(dst = new CVector2()) {
+    dst.Assign(this);
+    return dst;
+  }
+
+  Assign(value) {
+    this.X = value.X;
+    this.Y = value.Y;
+  }
+
+  Reset(x, y) {
+    this.X = x;
+    this.Y = y;
+  }
+
   /// <summary>
   /// Creates a new <see cref="Vector2"/> that contains a transformation of 2d-vector by the specified <see cref="Matrix"/>.
   /// </summary>
@@ -782,6 +798,31 @@ CVector2 = class CVector2 {
     result.X = value.X + x * rotation.W + (rotation.Y * z - rotation.Z * y);
     result.Y = value.Y + y * rotation.W + (rotation.Z * x - rotation.X * z);
     return result;
+  }
+
+  static get Zero() {
+    return new CVector2(0, 0);
+  }
+  static get One() {
+    return new CVector2(1, 1);
+  }
+  static get UnitX() {
+    return new CVector2(1, 0);
+  }
+  static get UnitY() {
+    return new CVector2(0, 1);
+  }
+  static get Up() {
+    return new CVector2(0, 1);
+  }
+  static get Down() {
+    return new CVector2(0, -1);
+  }
+  static get Right() {
+    return new CVector2(1, 0);
+  }
+  static get Left() {
+    return new CVector2(-1, 0);
   }
 };
 
@@ -2660,6 +2701,115 @@ CMatrix.identity = new CMatrix(
   0, 0, 1, 0,
   0, 0, 0, 1
 );
+
+/// <summary>
+/// Defines sprite visual options for mirroring.
+/// </summary>
+//[Flags]
+ESpriteEffects = {
+  /// <summary>
+  /// No options specified.
+  /// </summary>
+  None: 0,
+  /// <summary>
+  /// Render the sprite reversed along the X axis.
+  /// </summary>
+  FlipHorizontally: 1,
+  /// <summary>
+  /// Render the sprite reversed along the Y axis.
+  /// </summary>
+  FlipVertically: 2
+}
+
+
+CColor = class CColor {
+  static New() { var me = new CColor(); me._value = chroma(); return me; }
+
+  static FromRGBA(r=1.0, g=1.0, b=1.0, a=1.0) {
+    var me = new CColor();
+    me._value = chroma.rgb(255*r, 255*g, 255*b, a);
+    return me;
+  }
+
+  static FromRGB(r=1.0, g=1.0, b=1.0) {
+    return CColor.FromRGBA(r,g,b,1.0);
+  }
+
+  toString() {
+    return this.Clamped._value.toString();
+  }
+
+  Clone(dst = CColor.New()) {
+    dst.Assign(this);
+    return dst;
+  }
+
+  Assign(value) {
+    this.R = value.R;
+    this.G = value.G;
+    this.B = value.B;
+    this.A = value.A;
+  }
+
+  Reset(r, g, b, a=1.0) {
+    this.R = r;
+    this.G = g;
+    this.B = b;
+    this.A = a;
+  }
+
+  get IsClamped() {
+    var r = this._value._rgb[0];
+    var g = this._value._rgb[1];
+    var b = this._value._rgb[2];
+    return (r >= 0 && r < 256 &&
+      g >= 0 && g < 256 &&
+      b >= 0 && b < 256);
+  }
+
+  get Clamped() {
+    var r = Math.max(0,Math.min(255,this._value._rgb[0]));
+    var g = Math.max(0,Math.min(255,this._value._rgb[1]));
+    var b = Math.max(0,Math.min(255,this._value._rgb[2]));
+    return CColor.FromRGBA(
+      CMath.Clamp(0,1,this.R),
+      CMath.Clamp(0,1,this.G),
+      CMath.Clamp(0,1,this.B),
+      CMath.Clamp(0,1,this.A));
+  }
+
+  get R() {
+    return this._value._rgb[0] / 255.0;
+  }
+  get G() {
+    return this._value._rgb[1] / 255.0;
+  }
+  get B() {
+    return this._value._rgb[2] / 255.0;
+  }
+  get A() {
+    return this._value._rgb[3];
+  }
+
+  /*
+  set R(value) { this._value._rgb[0] = Math.floor(255*Math.max(0, Math.min(1, value))); }
+  set G(value) { this._value._rgb[1] = Math.floor(255*Math.max(0, Math.min(1, value))); }
+  set B(value) { this._value._rgb[2] = Math.floor(255*Math.max(0, Math.min(1, value))); }
+  set A(value) { this._value._rgb[2] = Math.max(0, Math.min(1, value)); }
+  */
+  set R(value) { this._value._rgb[0] = 255*value; }
+  set G(value) { this._value._rgb[1] = 255*value; }
+  set B(value) { this._value._rgb[2] = 255*value; }
+  set A(value) { this._value._rgb[2] = CMath.Clamp(0, 1, value); }
+
+  static get White() {
+    return CColor.FromRGBA(1,1,1,1);
+  }
+
+  static get Black() {
+    return CColor.FromRGBA(0,0,0,1);
+  }
+}
 
 CGame = class CGame {
   Tick()

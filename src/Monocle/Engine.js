@@ -723,3 +723,136 @@ CCoroutine = class CCoroutine extends CComponent {
     this.ended = true;
   }
 }; 
+
+CGraphicsComponent = class GraphicsComponent extends CComponent {
+
+  constructor(/*bool*/ active)
+  {
+    super(active, true);
+    /*Vector2*/ this.Scale = CVector2.One;
+    /*Color*/ this.Color = CColor.White;
+    /*SpriteEffects*/ this.Effects = ESpriteEffects.None;
+    /*Vector2*/ this.Position = CVector2.Zero;
+    /*Vector2*/ this.Origin = CVector2.Zero;
+    /*float*/ this.Rotation = 0;
+  }
+
+  /*float*/ get X() { return this.Position.X; }
+  /*float*/ get Y() { return this.Position.Y; }
+
+  set X(/*float*/ value) { this.Position.X = value; }
+  set Y(/*float*/ value) { this.Position.Y = value; }
+
+
+  /*bool*/ get FlipX() { return (this.Effects & ESpriteEffects.FlipHorizontally) === ESpriteEffects.FlipHorizontally; }
+  /*bool*/ get FlipY() { return (this.Effects & ESpriteEffects.FlipVertically) === ESpriteEffects.FlipVertically; }
+
+  set FlipX(/*bool*/ value) { this.Effects = value ? this.Effects | ESpriteEffects.FlipHorizontally : this.Effects & ~ESpriteEffects.FlipHorizontally; }
+  set FlipY(/*bool*/ value) { this.Effects = value ? this.Effects | ESpriteEffects.FlipVertically : this.Effects & ~ESpriteEffects.FlipVertically; }
+
+  /*float*/ get RenderPositionX() { return (this.Entity == null ? 0.0 : this.Entity.Position.X) + this.Position.X; }
+  /*float*/ get RenderPositionY() { return (this.Entity == null ? 0.0 : this.Entity.Position.Y) + this.Position.Y; }
+  set RenderPositionX(value) { this.Position.X = value - (this.Entity == null ? 0 : this.Entity.Position.X); }
+  set RenderPositionY(value) { this.Position.Y = value - (this.Entity == null ? 0 : this.Entity.Position.Y); }
+
+  get RenderPosition() { return new CVector2(this.RenderPositionX, this.RenderPositionY); }
+
+  /*void*/ DrawOutline(/*int*/ offset = 1)
+  {
+    this.DrawOutline(CColor.Black, offset);
+  }
+
+  /*void*/ DrawOutline(/*Color*/ color, /*int*/ offset = 1)
+  {
+    /*Vector2*/ var position = this.Position.Clone();
+    /*Color*/ var color1 = this.Color.Clone();
+    this.Color.Assign(color);
+    for (/*int*/ let index1 = -1; index1 < 2; ++index1)
+    {
+      for (/*int*/ let index2 = -1; index2 < 2; ++index2)
+      {
+        if (index1 !== 0 || /*(uint)*/ index2 > 0)
+        {
+          this.Position.X = position.X + (index1 * offset);
+          this.Position.Y = position.Y + (index2 * offset);
+          this.Render();
+        }
+      }
+    }
+    this.Position = position;
+    this.Color.Assign(color1);
+  }
+}
+
+
+CImage = class CImage extends CGraphicsComponent {
+  constructor(/*MTexture*/ texture) {
+    super(false);
+    this.Texture = texture;
+  }
+
+  /*override*/ /*void*/ Render()
+  {
+    if (this.Texture == null)
+      return;
+    this.Texture.Draw(this.RenderPosition, this.Origin, this.Color, this.Scale, this.Rotation, this.Effects);
+  }
+
+  get Width() { return this.Texture.Width; }
+  get Height() { return this.Texture.Height; }
+
+  /*Image*/ SetOrigin(/*float*/ x, /*float*/ y) {
+    this.Origin.X = x;
+    this.Origin.Y = y;
+    return this;
+  }
+
+  /*Image*/ CenterOrigin()
+  {
+    this.Origin.X = this.Width / 2;
+    this.Origin.Y = this.Height / 2;
+    return this;
+  }
+
+  /*Image*/ JustifyOriginAt(/*Vector2*/ at)
+  {
+    this.Origin.X = this.Width * at.X;
+    this.Origin.Y = this.Height * at.Y;
+    return this;
+  }
+
+  /*Image*/ JustifyOriginXY(/*float*/ x, /*float*/ y)
+  {
+    this.Origin.X = this.Width * x;
+    this.Origin.Y = this.Height * y;
+    return this;
+  }
+};
+
+CVirtualAsset = /*abstract*/ class CVirtualAsset {
+  //string Name { get; internal set; }
+
+  //int Width { get; internal set; }
+
+  //int Height { get; internal set; }
+
+  constructor()
+  {
+    this.Name = "";
+    this.Width = 0;
+    this.Height = 0;
+  }
+
+  /*internal*/ /*virtual*/ /*void*/ Unload()
+  {
+  }
+
+  /*internal*/ /*virtual*/ /*void*/ Reload()
+  {
+  }
+
+  /*virtual*/ /*void*/ Dispose()
+  {
+  }
+}
+
