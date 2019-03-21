@@ -178,7 +178,7 @@ void main() {
       //sphere: twgl.primitives.createSphereBufferInfo(gl, 1, 24, 12),
       //plane: twgl.primitives.createPlaneBufferInfo(gl, 2, 2),
       //plane: createBufferInfoFunc(createPlaneVertices)(gl, 2, 2),
-      plane: createBufferInfoFunc(createXYQuadVertices)(gl),
+      plane: createBufferInfoFunc(createXYQuadVertices)(gl, 1, 0.5, 0.5),
       //cone: twgl.primitives.createTruncatedConeBufferInfo(gl, 1, 0, 2, 24, 1),
     };
     const shapeID = Object.keys(shapes);
@@ -305,7 +305,7 @@ function createAnims(baseOpts, opts) {
     } else {
       const w = gl.canvas.width/gl.canvas.width;
       const h = gl.canvas.height/gl.canvas.height;
-      projection = m4.ortho(-w, w, h, -h, 0.5, 100);
+      projection = m4.ortho(0, w, h, 0, 0.5, 100);
 
       const eye = [0, 0, 10];
       const target = [0, 0, 0];
