@@ -320,8 +320,8 @@ MInput = class MInput {
 };
 
 CEngine = class CEngine extends CGame {
-  constructor() {
-    super();
+  constructor(nativeWindow, display = "") {
+    super(nativeWindow, display);
 
     CEngine.Instance = this;
   }

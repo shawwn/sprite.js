@@ -467,6 +467,256 @@ CMathHelper = class CMathHelper {
   }
 };
 
+CPoint = class CPoint {
+  constructor(x = 0, y = 0) {
+    this.X = x;
+    this.Y = y;
+  }
+
+  Clone(dst = new CVector2()) {
+    dst.Assign(this);
+    return dst;
+  }
+
+  Assign(value) {
+    this.X = value.X;
+    this.Y = value.Y;
+  }
+
+  Reset(x, y) {
+    this.X = x;
+    this.Y = y;
+  }
+
+  /// <summary>
+  /// Compares whether current instance is equal to specified <see cref="Point"/>.
+  /// </summary>
+  /// <param name="other">The <see cref="Point"/> to compare.</param>
+  /// <returns><c>true</c> if the instances are equal; <c>false</c> otherwise.</returns>
+  /*public*/ /*bool*/ Equals(/*Point*/ other)
+  {
+    return (other instanceof CPoint) && ((this.X === other.X) && (this.Y === other.Y));
+  }
+
+// 		/// <summary>
+// 		/// Gets the hash code of this <see cref="Point"/>.
+// 		/// </summary>
+// 		/// <returns>Hash code of this <see cref="Point"/>.</returns>
+// 		public override int GetHashCode()
+// 		{
+// 			return X ^ Y;
+// 		}
+
+
+  static get Zero() {
+    return new CPoint(0, 0);
+  }
+
+
+  /*public*/ /*CPoint*/ /*operator*/ ["="](/*Point*/ p2)
+  {
+    this.X = p2.X;
+    this.Y = p2.Y;
+    return this;
+  }
+
+
+  /*public*/ /*bool*/ /*operator*/ ["=="](/*Point*/ p2)
+  {
+    return this.Equals(p2);
+  }
+
+  /*public*/ /*bool*/ /*operator*/ ["==="](/*Point*/ p2)
+  {
+    return this.Equals(p2);
+  }
+
+  /*public*/ /*bool*/ /*operator*/ ["!="](/*Point*/ p2)
+  {
+    return !this.Equals(p2);
+  }
+
+  /*public*/ static /*bool*/ /*operator*/ ["+"](/*Point*/ p1, /*Point*/ p2)
+  {
+    return new CPoint(p1.X + p2.X, p1.Y + p2.Y);
+  }
+  /*public*/ /*bool*/ /*operator*/ ["+"](/*Point*/ p2)
+  {
+    return new CPoint(this.X + p2.X, this.Y + p2.Y);
+  }
+
+  /*public*/ static /*bool*/ /*operator*/ ["-"](/*Point*/ p1, /*Point*/ p2)
+  {
+    return new CPoint(p1.X - p2.X, p1.Y - p2.Y);
+  }
+  /*public*/ /*bool*/ /*operator*/ ["-"](/*Point*/ p2)
+  {
+    return new CPoint(this.X - p2.X, this.Y - p2.Y);
+  }
+
+  /*public*/ static /*bool*/ /*operator*/ ["*"](/*Point*/ p1, /*Point*/ p2)
+  {
+    return new CPoint(p1.X * p2.X, p1.Y * p2.Y);
+  }
+  /*public*/ /*bool*/ /*operator*/ ["*"](/*Point*/ p2)
+  {
+    return new CPoint(this.X * p2.X, this.Y * p2.Y);
+  }
+
+  /*public*/ static /*bool*/ /*operator*/ ["/"](/*Point*/ p1, /*Point*/ p2)
+  {
+    return new CPoint(p1.X / p2.X, p1.Y / p2.Y);
+  }
+  /*public*/ /*bool*/ /*operator*/ ["/"](/*Point*/ p2)
+  {
+    return new CPoint(this.X / p2.X, this.Y / p2.Y);
+  }
+};
+
+CRectangle = class CRectangle {
+  constructor(x=0, y=0, width=0, height=0) {
+    this.X = x;
+    this.Y = y;
+    this.Width = width;
+    this.Height = height;
+  }
+
+  /// <summary>
+  /// Returns the x coordinate of the left edge of this <see cref="Rectangle"/>.
+  /// </summary>
+  // public int Left
+  // {
+  //   get
+  //   {
+  //     return X;
+  //   }
+  // }
+  get Left()
+  {
+    return this.X;
+  }
+
+  /// <summary>
+  /// Returns the x coordinate of the right edge of this <see cref="Rectangle"/>.
+  /// </summary>
+  // public int Right
+  // {
+  //   get
+  //   {
+  //     return (X + Width);
+  //   }
+  // }
+  get Right()
+  {
+    return this.X + this.Width;
+  }
+
+  /// <summary>
+  /// Returns the y coordinate of the top edge of this <see cref="Rectangle"/>.
+  /// </summary>
+  // public int Top
+  // {
+  //   get
+  //   {
+  //     return Y;
+  //   }
+  // }
+  get Top()
+  {
+    return this.Y;
+  }
+
+  /// <summary>
+  /// Returns the y coordinate of the bottom edge of this <see cref="Rectangle"/>.
+  /// </summary>
+  // public int Bottom
+  // {
+  //   get
+  //   {
+  //     return (Y + Height);
+  //   }
+  // }
+  get Bottom()
+  {
+    return this.Y + this.Height;
+  }
+
+  /// <summary>
+  /// The top-left coordinates of this <see cref="Rectangle"/>.
+  /// </summary>
+  // public Point Location
+  // {
+  //   get
+  //   {
+  //     return new Point(X, Y);
+  //   }
+  //   set
+  //   {
+  //     X = value.X;
+  //     Y = value.Y;
+  //   }
+  // }
+  get Location()
+  {
+    return new CPoint(this.X, this.Y);
+  }
+  set Location(value)
+  {
+    this.X = value.X;
+    this.Y = value.Y;
+  }
+
+  /// <summary>
+  /// A <see cref="Point"/> located in the center of this <see cref="Rectangle"/>'s bounds.
+  /// </summary>
+  /// <remarks>
+  /// If <see cref="Width"/> or <see cref="Height"/> is an odd number,
+  /// the center point will be rounded down.
+  /// </remarks>
+  // public Point Center
+  // {
+  //   get
+  //   {
+  //     return new Point(
+  //       X + (Width / 2),
+  //       Y + (Height / 2)
+  //     );
+  //   }
+  // }
+  get Center()
+  {
+    return new CPoint(this.X + (this.Width / 2), this.Y + (this.Height / 2)); // TODO: truncate?
+  }
+
+  /// <summary>
+  /// Whether or not this <see cref="Rectangle"/> has a width and
+  /// height of 0, and a position of (0, 0).
+  /// </summary>
+  // public bool IsEmpty
+  // {
+  //   get
+  //   {
+  //     return (	(Width == 0) &&
+  //         (Height == 0) &&
+  //         (X == 0) &&
+  //         (Y == 0)	);
+  //   }
+  // }
+  get IsEmpty()
+  {
+    return (this.Width === 0) && (this.Height === 0) && (this.X === 0) && (this.Y === 0);
+  }
+
+  /// <summary>
+  /// Returns a <see cref="Rectangle"/> with X=0, Y=0, Width=0, and Height=0.
+  /// </summary>
+  static get Empty()
+  {
+    return new CRectangle();
+  }
+};
+
+
 CVector2 = class CVector2 {
   constructor(x = 0.0, y = 0.0) {
     this.X = x;
@@ -2545,6 +2795,56 @@ CEventArgs = class CEventArgs {
   }
 };
 
+CGameWindow = class CGameWindow {
+  constructor()
+  {
+    /*
+    public event EventHandler<EventArgs> ClientSizeChanged;
+    public event EventHandler<EventArgs> OrientationChanged;
+    public event EventHandler<EventArgs> ScreenDeviceNameChanged;
+    */
+    this.ClientSizeChanged = new EventHandler();
+    this.OrientationChanged = new EventHandler();
+    this.ScreenDeviceNameChanged = new EventHandler();
+    this.INTERNAL_title = "";
+    this.AllowUserResizing = false;
+  }
+
+  /*
+  public string Title
+  {
+    get
+    {
+      return _title;
+    }
+    set
+    {
+      if (_title != value)
+      {
+        SetTitle(value);
+        _title = value;
+      }
+    }
+  }
+  */
+  get Title()
+  { 
+    return this.INTERNAL_title;
+  }
+  set Title(value)
+  {
+    if (this.INTERNAL_title !== value)
+    {
+      this.SetTitle(value);
+      this.INTERNAL_title = value;
+    }
+  }
+
+  /*protected*/ /*abstract*/ /*void*/ SetTitle(/*string*/ title) {
+    throw new CNotImplemlementedException("CGameWindow::SetTitle");
+  }
+};
+
 CGame = class CGame extends IDisposable {
 	/*private*/ static /*readonly*/ /*TimeSpan*/ get MaxElapsedTime() {
     if (typeof CGame.INTERNAL_MaxElapsedTime === "undefined") {
@@ -2553,7 +2853,7 @@ CGame = class CGame extends IDisposable {
     return CGame.INTERNAL_MaxElapsedTime;
   }
 
-  constructor() {
+  constructor(nativeWindow, display = "") {
     super();
 
     this.Exiting = new EventHandler()
@@ -2591,6 +2891,8 @@ CGame = class CGame extends IDisposable {
     // Window = FNAPlatform.CreateWindow();
     // Mouse.WindowHandle = Window.Handle;
     // TouchPanel.WindowHandle = Window.Handle;
+
+    this.Window = new CFNAWindow(nativeWindow, display);
 
     // FrameworkDispatcher.Update();
 
@@ -2957,11 +3259,38 @@ CGame = class CGame extends IDisposable {
   }
 };
 
+CFNAWindow = class CFNAWindow extends CGameWindow {
+  constructor(/*IntPtr*/ nativeWindow, /*string*/ display)
+  {
+    super();
+    this.window = nativeWindow;
+    this.deviceName = display;
+    this.wantsFullscreen = false;
+  }
+
+  get Handle()
+  {
+    return this.window;
+  }
+
+  get ClientBounds()
+  {
+    return CFNAPlatform.GetWindowBounds(this.window);
+  }
+};
+
 CFNAPlatform = class CFNAPlatform {
-		/*public*/ static /*void*/ async RunLoop(/*Game*/ game)
-		{
-			//SDL.SDL_ShowWindow(game.Window.Handle);
-			game.IsActive = true;
+
+  /*public*/ static /*Rectangle*/ GetWindowBounds(/*IntPtr*/ window)
+  {
+    let rect = window.getBoundingClientRect()
+    return new CRectangle(rect.x, rect.y, rect.width, rect.height);
+  }
+
+  /*public*/ static /*void*/ async RunLoop(/*Game*/ game)
+  {
+    //SDL.SDL_ShowWindow(game.Window.Handle);
+    game.IsActive = true;
 
 // 			Rectangle windowBounds = game.Window.ClientBounds;
 // 			Mouse.INTERNAL_WindowWidth = windowBounds.Width;
@@ -3028,281 +3357,281 @@ CFNAPlatform = class CFNAPlatform {
 
 // 			SDL.SDL_Event evt;
 
-			while (game.RunApplication)
-			{
-				// while (SDL.SDL_PollEvent(out evt) == 1)
-				// {
-				// 	// Keyboard
-				// 	if (evt.type == SDL.SDL_EventType.SDL_KEYDOWN)
-				// 	{
-				// 		Keys key = ToXNAKey(ref evt.key.keysym);
-				// 		if (!keys.Contains(key))
-				// 		{
-				// 			keys.Add(key);
-				// 			int textIndex;
-				// 			if (textInputBindings.TryGetValue(key, out textIndex))
-				// 			{
-				// 				textInputControlDown[textIndex] = true;
-				// 				textInputControlRepeat[textIndex] = Environment.TickCount + 400;
-				// 				TextInputEXT.OnTextInput(textInputCharacters[textIndex]);
-				// 			}
-				// 			else if (keys.Contains(Keys.LeftControl) && key == Keys.V)
-				// 			{
-				// 				textInputControlDown[6] = true;
-				// 				textInputControlRepeat[6] = Environment.TickCount + 400;
-				// 				TextInputEXT.OnTextInput(textInputCharacters[6]);
-				// 				textInputSuppress = true;
-				// 			}
-				// 		}
-				// 	}
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_KEYUP)
-				// 	{
-				// 		Keys key = ToXNAKey(ref evt.key.keysym);
-				// 		if (keys.Remove(key))
-				// 		{
-				// 			int value;
-				// 			if (textInputBindings.TryGetValue(key, out value))
-				// 			{
-				// 				textInputControlDown[value] = false;
-				// 			}
-				// 			else if ((!keys.Contains(Keys.LeftControl) && textInputControlDown[3]) || key == Keys.V)
-				// 			{
-				// 				textInputControlDown[6] = false;
-				// 				textInputSuppress = false;
-				// 			}
-				// 		}
-				// 	}
+    while (game.RunApplication)
+    {
+      // while (SDL.SDL_PollEvent(out evt) == 1)
+      // {
+      // 	// Keyboard
+      // 	if (evt.type == SDL.SDL_EventType.SDL_KEYDOWN)
+      // 	{
+      // 		Keys key = ToXNAKey(ref evt.key.keysym);
+      // 		if (!keys.Contains(key))
+      // 		{
+      // 			keys.Add(key);
+      // 			int textIndex;
+      // 			if (textInputBindings.TryGetValue(key, out textIndex))
+      // 			{
+      // 				textInputControlDown[textIndex] = true;
+      // 				textInputControlRepeat[textIndex] = Environment.TickCount + 400;
+      // 				TextInputEXT.OnTextInput(textInputCharacters[textIndex]);
+      // 			}
+      // 			else if (keys.Contains(Keys.LeftControl) && key == Keys.V)
+      // 			{
+      // 				textInputControlDown[6] = true;
+      // 				textInputControlRepeat[6] = Environment.TickCount + 400;
+      // 				TextInputEXT.OnTextInput(textInputCharacters[6]);
+      // 				textInputSuppress = true;
+      // 			}
+      // 		}
+      // 	}
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_KEYUP)
+      // 	{
+      // 		Keys key = ToXNAKey(ref evt.key.keysym);
+      // 		if (keys.Remove(key))
+      // 		{
+      // 			int value;
+      // 			if (textInputBindings.TryGetValue(key, out value))
+      // 			{
+      // 				textInputControlDown[value] = false;
+      // 			}
+      // 			else if ((!keys.Contains(Keys.LeftControl) && textInputControlDown[3]) || key == Keys.V)
+      // 			{
+      // 				textInputControlDown[6] = false;
+      // 				textInputSuppress = false;
+      // 			}
+      // 		}
+      // 	}
 
-				// 	// Mouse Input
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN)
-				// 	{
-				// 		Mouse.INTERNAL_onClicked(evt.button.button - 1);
-				// 	}
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_MOUSEWHEEL)
-				// 	{
-				// 		// 120 units per notch. Because reasons.
-				// 		Mouse.INTERNAL_MouseWheel += evt.wheel.y * 120;
-				// 	}
+      // 	// Mouse Input
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_MOUSEBUTTONDOWN)
+      // 	{
+      // 		Mouse.INTERNAL_onClicked(evt.button.button - 1);
+      // 	}
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_MOUSEWHEEL)
+      // 	{
+      // 		// 120 units per notch. Because reasons.
+      // 		Mouse.INTERNAL_MouseWheel += evt.wheel.y * 120;
+      // 	}
 
-				// 	// Touch Input
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_FINGERDOWN)
-				// 	{
-				// 		// Windows only notices a touch screen once it's touched
-				// 		TouchPanel.TouchDeviceExists = true;
+      // 	// Touch Input
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_FINGERDOWN)
+      // 	{
+      // 		// Windows only notices a touch screen once it's touched
+      // 		TouchPanel.TouchDeviceExists = true;
 
-				// 		TouchPanel.INTERNAL_onTouchEvent(
-				// 			(int)evt.tfinger.fingerId,
-				// 			TouchLocationState.Pressed,
-				// 			evt.tfinger.x,
-				// 			evt.tfinger.y,
-				// 			0,
-				// 			0
-				// 		);
-				// 	}
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_FINGERMOTION)
-				// 	{
-				// 		TouchPanel.INTERNAL_onTouchEvent(
-				// 			(int)evt.tfinger.fingerId,
-				// 			TouchLocationState.Moved,
-				// 			evt.tfinger.x,
-				// 			evt.tfinger.y,
-				// 			evt.tfinger.dx,
-				// 			evt.tfinger.dy
-				// 		);
-				// 	}
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_FINGERUP)
-				// 	{
-				// 		TouchPanel.INTERNAL_onTouchEvent(
-				// 			(int)evt.tfinger.fingerId,
-				// 			TouchLocationState.Released,
-				// 			evt.tfinger.x,
-				// 			evt.tfinger.y,
-				// 			0,
-				// 			0
-				// 		);
-				// 	}
+      // 		TouchPanel.INTERNAL_onTouchEvent(
+      // 			(int)evt.tfinger.fingerId,
+      // 			TouchLocationState.Pressed,
+      // 			evt.tfinger.x,
+      // 			evt.tfinger.y,
+      // 			0,
+      // 			0
+      // 		);
+      // 	}
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_FINGERMOTION)
+      // 	{
+      // 		TouchPanel.INTERNAL_onTouchEvent(
+      // 			(int)evt.tfinger.fingerId,
+      // 			TouchLocationState.Moved,
+      // 			evt.tfinger.x,
+      // 			evt.tfinger.y,
+      // 			evt.tfinger.dx,
+      // 			evt.tfinger.dy
+      // 		);
+      // 	}
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_FINGERUP)
+      // 	{
+      // 		TouchPanel.INTERNAL_onTouchEvent(
+      // 			(int)evt.tfinger.fingerId,
+      // 			TouchLocationState.Released,
+      // 			evt.tfinger.x,
+      // 			evt.tfinger.y,
+      // 			0,
+      // 			0
+      // 		);
+      // 	}
 
-				// 	// Various Window Events...
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_WINDOWEVENT)
-				// 	{
-				// 		// Window Focus
-				// 		if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_GAINED)
-				// 		{
-				// 			game.IsActive = true;
+      // 	// Various Window Events...
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_WINDOWEVENT)
+      // 	{
+      // 		// Window Focus
+      // 		if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_GAINED)
+      // 		{
+      // 			game.IsActive = true;
 
-				// 			if (!osxUseSpaces)
-				// 			{
-				// 				// If we alt-tab away, we lose the 'fullscreen desktop' flag on some WMs
-				// 				SDL.SDL_SetWindowFullscreen(
-				// 					game.Window.Handle,
-				// 					game.GraphicsDevice.PresentationParameters.IsFullScreen ?
-				// 						(uint) SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP :
-				// 						0
-				// 				);
-				// 			}
+      // 			if (!osxUseSpaces)
+      // 			{
+      // 				// If we alt-tab away, we lose the 'fullscreen desktop' flag on some WMs
+      // 				SDL.SDL_SetWindowFullscreen(
+      // 					game.Window.Handle,
+      // 					game.GraphicsDevice.PresentationParameters.IsFullScreen ?
+      // 						(uint) SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP :
+      // 						0
+      // 				);
+      // 			}
 
-				// 			// Disable the screensaver when we're back.
-				// 			SDL.SDL_DisableScreenSaver();
-				// 		}
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_LOST)
-				// 		{
-				// 			game.IsActive = false;
+      // 			// Disable the screensaver when we're back.
+      // 			SDL.SDL_DisableScreenSaver();
+      // 		}
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_FOCUS_LOST)
+      // 		{
+      // 			game.IsActive = false;
 
-				// 			if (!osxUseSpaces)
-				// 			{
-				// 				SDL.SDL_SetWindowFullscreen(game.Window.Handle, 0);
-				// 			}
+      // 			if (!osxUseSpaces)
+      // 			{
+      // 				SDL.SDL_SetWindowFullscreen(game.Window.Handle, 0);
+      // 			}
 
-				// 			// Give the screensaver back, we're not that important now.
-				// 			SDL.SDL_EnableScreenSaver();
-				// 		}
+      // 			// Give the screensaver back, we're not that important now.
+      // 			SDL.SDL_EnableScreenSaver();
+      // 		}
 
-				// 		// Window Resize
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_SIZE_CHANGED)
-				// 		{
-				// 			// This is called on both API and WM resizes
-				// 			Mouse.INTERNAL_WindowWidth = evt.window.data1;
-				// 			Mouse.INTERNAL_WindowHeight = evt.window.data2;
-				// 		}
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED)
-				// 		{
-				// 			/* This should be called on user resize only, NOT ApplyChanges!
-				// 			 * Sadly some window managers are idiots and fire events anyway.
-				// 			 * Also ignore any other "resizes" (alt-tab, fullscreen, etc.)
-				// 			 * -flibit
-				// 			 */
-				// 			if (GetWindowResizable(game.Window.Handle))
-				// 			{
-				// 				((FNAWindow) game.Window).INTERNAL_ClientSizeChanged();
-				// 			}
-				// 		}
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_EXPOSED)
-				// 		{
-				// 			// This is typically called when the window is made bigger
-				// 			game.RedrawWindow();
-				// 		}
+      // 		// Window Resize
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_SIZE_CHANGED)
+      // 		{
+      // 			// This is called on both API and WM resizes
+      // 			Mouse.INTERNAL_WindowWidth = evt.window.data1;
+      // 			Mouse.INTERNAL_WindowHeight = evt.window.data2;
+      // 		}
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_RESIZED)
+      // 		{
+      // 			/* This should be called on user resize only, NOT ApplyChanges!
+      // 			 * Sadly some window managers are idiots and fire events anyway.
+      // 			 * Also ignore any other "resizes" (alt-tab, fullscreen, etc.)
+      // 			 * -flibit
+      // 			 */
+      // 			if (GetWindowResizable(game.Window.Handle))
+      // 			{
+      // 				((FNAWindow) game.Window).INTERNAL_ClientSizeChanged();
+      // 			}
+      // 		}
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_EXPOSED)
+      // 		{
+      // 			// This is typically called when the window is made bigger
+      // 			game.RedrawWindow();
+      // 		}
 
-				// 		// Window Move
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_MOVED)
-				// 		{
-				// 			/* Apparently if you move the window to a new
-				// 			 * display, a GraphicsDevice Reset occurs.
-				// 			 * -flibit
-				// 			 */
-				// 			int newIndex = SDL.SDL_GetWindowDisplayIndex(
-				// 				game.Window.Handle
-				// 			);
-				// 			if (newIndex != displayIndex)
-				// 			{
-				// 				displayIndex = newIndex;
-				// 				game.GraphicsDevice.Reset(
-				// 					game.GraphicsDevice.PresentationParameters,
-				// 					GraphicsAdapter.Adapters[displayIndex]
-				// 				);
-				// 			}
-				// 		}
+      // 		// Window Move
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_MOVED)
+      // 		{
+      // 			/* Apparently if you move the window to a new
+      // 			 * display, a GraphicsDevice Reset occurs.
+      // 			 * -flibit
+      // 			 */
+      // 			int newIndex = SDL.SDL_GetWindowDisplayIndex(
+      // 				game.Window.Handle
+      // 			);
+      // 			if (newIndex != displayIndex)
+      // 			{
+      // 				displayIndex = newIndex;
+      // 				game.GraphicsDevice.Reset(
+      // 					game.GraphicsDevice.PresentationParameters,
+      // 					GraphicsAdapter.Adapters[displayIndex]
+      // 				);
+      // 			}
+      // 		}
 
-				// 		// Mouse Focus
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_ENTER)
-				// 		{
-				// 			SDL.SDL_DisableScreenSaver();
-				// 		}
-				// 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_LEAVE)
-				// 		{
-				// 			SDL.SDL_EnableScreenSaver();
-				// 		}
-				// 	}
+      // 		// Mouse Focus
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_ENTER)
+      // 		{
+      // 			SDL.SDL_DisableScreenSaver();
+      // 		}
+      // 		else if (evt.window.windowEvent == SDL.SDL_WindowEventID.SDL_WINDOWEVENT_LEAVE)
+      // 		{
+      // 			SDL.SDL_EnableScreenSaver();
+      // 		}
+      // 	}
 
-				// 	// Display Events
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_DISPLAYEVENT)
-				// 	{
-				// 		// Orientation Change
-				// 		if (evt.display.displayEvent == SDL.SDL_DisplayEventID.SDL_DISPLAYEVENT_ORIENTATION)
-				// 		{
-				// 			DisplayOrientation orientation = INTERNAL_ConvertOrientation(
-				// 				(SDL.SDL_DisplayOrientation) evt.display.data1
-				// 			);
+      // 	// Display Events
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_DISPLAYEVENT)
+      // 	{
+      // 		// Orientation Change
+      // 		if (evt.display.displayEvent == SDL.SDL_DisplayEventID.SDL_DISPLAYEVENT_ORIENTATION)
+      // 		{
+      // 			DisplayOrientation orientation = INTERNAL_ConvertOrientation(
+      // 				(SDL.SDL_DisplayOrientation) evt.display.data1
+      // 			);
 
-				// 			INTERNAL_HandleOrientationChange(
-				// 				orientation,
-				// 				game.GraphicsDevice,
-				// 				(FNAWindow) game.Window
-				// 			);
-				// 		}
-				// 	}
+      // 			INTERNAL_HandleOrientationChange(
+      // 				orientation,
+      // 				game.GraphicsDevice,
+      // 				(FNAWindow) game.Window
+      // 			);
+      // 		}
+      // 	}
 
-				// 	// Controller device management
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_CONTROLLERDEVICEADDED)
-				// 	{
-				// 		INTERNAL_AddInstance(evt.cdevice.which);
-				// 	}
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_CONTROLLERDEVICEREMOVED)
-				// 	{
-				// 		INTERNAL_RemoveInstance(evt.cdevice.which);
-				// 	}
+      // 	// Controller device management
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_CONTROLLERDEVICEADDED)
+      // 	{
+      // 		INTERNAL_AddInstance(evt.cdevice.which);
+      // 	}
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_CONTROLLERDEVICEREMOVED)
+      // 	{
+      // 		INTERNAL_RemoveInstance(evt.cdevice.which);
+      // 	}
 
-				// 	// Text Input
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_TEXTINPUT && !textInputSuppress)
-				// 	{
-				// 		// Based on the SDL2# LPUtf8StrMarshaler
-				// 		unsafe
-				// 		{
-				// 			byte* endPtr = evt.text.text;
-				// 			if (*endPtr != 0)
-				// 			{
-				// 				int bytes = 0;
-				// 				while (*endPtr != 0)
-				// 				{
-				// 					endPtr++;
-				// 					bytes += 1;
-				// 				}
+      // 	// Text Input
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_TEXTINPUT && !textInputSuppress)
+      // 	{
+      // 		// Based on the SDL2# LPUtf8StrMarshaler
+      // 		unsafe
+      // 		{
+      // 			byte* endPtr = evt.text.text;
+      // 			if (*endPtr != 0)
+      // 			{
+      // 				int bytes = 0;
+      // 				while (*endPtr != 0)
+      // 				{
+      // 					endPtr++;
+      // 					bytes += 1;
+      // 				}
 
-				// 				/* UTF8 will never encode more characters
-				// 				 * than bytes in a string, so bytes is a
-				// 				 * suitable upper estimate of size needed
-				// 				 */
-				// 				char* charsBuffer = stackalloc char[bytes];
-				// 				int chars = Encoding.UTF8.GetChars(
-				// 					evt.text.text,
-				// 					bytes,
-				// 					charsBuffer,
-				// 					bytes
-				// 				);
+      // 				/* UTF8 will never encode more characters
+      // 				 * than bytes in a string, so bytes is a
+      // 				 * suitable upper estimate of size needed
+      // 				 */
+      // 				char* charsBuffer = stackalloc char[bytes];
+      // 				int chars = Encoding.UTF8.GetChars(
+      // 					evt.text.text,
+      // 					bytes,
+      // 					charsBuffer,
+      // 					bytes
+      // 				);
 
-				// 				for (int i = 0; i < chars; i += 1)
-				// 				{
-				// 					TextInputEXT.OnTextInput(charsBuffer[i]);
-				// 				}
-				// 			}
-				// 		}
-				// 	}
+      // 				for (int i = 0; i < chars; i += 1)
+      // 				{
+      // 					TextInputEXT.OnTextInput(charsBuffer[i]);
+      // 				}
+      // 			}
+      // 		}
+      // 	}
 
-				// 	// Quit
-				// 	else if (evt.type == SDL.SDL_EventType.SDL_QUIT)
-				// 	{
-				// 		game.RunApplication = false;
-				// 		break;
-				// 	}
-				// }
-				// // Text Input Controls Key Handling
-				// for (int i = 0; i < textInputCharacters.Length; i += 1)
-				// {
-				// 	if (textInputControlDown[i] && textInputControlRepeat[i] <= Environment.TickCount)
-				// 	{
-				// 		TextInputEXT.OnTextInput(textInputCharacters[i]);
-				// 	}
-				// }
+      // 	// Quit
+      // 	else if (evt.type == SDL.SDL_EventType.SDL_QUIT)
+      // 	{
+      // 		game.RunApplication = false;
+      // 		break;
+      // 	}
+      // }
+      // // Text Input Controls Key Handling
+      // for (int i = 0; i < textInputCharacters.Length; i += 1)
+      // {
+      // 	if (textInputControlDown[i] && textInputControlRepeat[i] <= Environment.TickCount)
+      // 	{
+      // 		TextInputEXT.OnTextInput(textInputCharacters[i]);
+      // 	}
+      // }
 
-				// Keyboard.SetKeys(keys);
-				await game.Tick();
-			}
+      // Keyboard.SetKeys(keys);
+      await game.Tick();
+    }
 
-			// Okay, we don't care about the events anymore
-			//activeGames.Remove(game);
+    // Okay, we don't care about the events anymore
+    //activeGames.Remove(game);
 
-			// We out.
-			game.Exit();
-		}
+    // We out.
+    game.Exit();
+  }
 };
 
 /// <summary>

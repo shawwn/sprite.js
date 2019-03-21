@@ -300,7 +300,7 @@ function randi(n) {
 
 CCeleste = class CCeleste extends CEngine {
   constructor() {
-    super();
+    super(document.getElementById('c'), window.title);
     this.FrameCount = 0;
     this.UpdateCount = 0;
     this.FPS = 0;
