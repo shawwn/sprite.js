@@ -716,6 +716,48 @@ CRectangle = class CRectangle {
   }
 };
 
+CViewport = class CViewport {
+  /// <summary>
+  /// Constructs a viewport from the given values. The <see cref="MinDepth"/> will be 0.0 and <see cref="MaxDepth"/> will be 1.0.
+  /// </summary>
+  /// <param name="x">The x coordinate of the upper-left corner of the view bounds in pixels.</param>
+  /// <param name="y">The y coordinate of the upper-left corner of the view bounds in pixels.</param>
+  /// <param name="width">The width of the view bounds in pixels.</param>
+  /// <param name="height">The height of the view bounds in pixels.</param>
+  /*public*/ CViewport4(/*int*/ x, /*int*/ y, /*int*/ width, /*int*/ height)
+  {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.minDepth = 0.0;
+    this.maxDepth = 1.0;
+  }
+
+  /// <summary>
+  /// Constructs a viewport from the given values.
+  /// </summary>
+  /// <param name="bounds">A <see cref="Rectangle"/> that defines the location and size of the <see cref="Viewport"/> in a render target.</param>
+  /*public*/ CViewport1(/*Rectangle*/ bounds)
+  {
+    this.x = bounds.X;
+    this.y = bounds.Y;
+    this.width = bounds.Width;
+    this.height = bounds.Height;
+    this.minDepth = 0.0;
+    this.maxDepth = 1.0;
+  }
+
+  constructor(...args)
+  {
+    switch(args.length) {
+      case 1: this.CViewport1(...args); break;
+      case 4: this.CViewport4(...args); break;
+      default: throw new CArgumentException("Invalid argument count");
+    }
+  }
+
+};
 
 CVector2 = class CVector2 {
   constructor(x = 0.0, y = 0.0) {
@@ -2841,7 +2883,88 @@ CGameWindow = class CGameWindow {
   }
 
   /*protected*/ /*abstract*/ /*void*/ SetTitle(/*string*/ title) {
-    throw new CNotImplemlementedException("CGameWindow::SetTitle");
+    throw new CNotImplementedException("CGameWindow::SetTitle");
+  }
+
+  /*public*/ /*abstract*/ /*void*/ BeginScreenDeviceChange(/*bool*/ willBeFullScreen) {
+    throw new CNotImplementedException("CGameWindow::BeginScreenDeviceChange");
+  }
+
+  /*public*/ /*abstract*/ /*void*/ EndScreenDeviceChange(
+    /*string*/ screenDeviceName,
+    /*int*/ clientWidth,
+    /*int*/ clientHeight
+  ) {
+    throw new CNotImplementedException("CGameWindow::EndScreenDeviceChange");
+  }
+
+  /*public*/ /*void*/ EndScreenDeviceChange1(/*string*/ screenDeviceName)
+  {
+    this.EndScreenDeviceChange(
+      screenDeviceName,
+      this.ClientBounds.Width,
+      this.ClientBounds.Height
+    );
+  }
+};
+
+CGameServiceContainer = class CGameServiceContainer //extends IServiceProvider
+{
+  constructor()
+  {
+    this.services = Object.create(null);
+  }
+
+  /*public*/ /*void*/ AddService(/*Type*/ type, /*object*/ provider)
+  {
+    if (type == null)
+    {
+      throw new CArgumentNullException("type");
+    }
+    if (provider == null)
+    {
+      throw new CArgumentNullException("provider");
+    }
+    // if (!type.IsAssignableFrom(provider.GetType()))
+    // {
+    //   throw new ArgumentException(
+    //     "The provider does not match the specified service type!"
+    //   );
+    // }
+
+    //this.services.Add(type, provider);
+    this.services[type] = provider;
+  }
+
+  /*public*/ /*object*/ GetService(/*Type*/ type)
+  {
+    if (type == null)
+    {
+      throw new CArgumentNullException("type");
+    }
+
+    // object service;
+    // if (services.TryGetValue(type, out service))
+    // {
+    //   return service;
+    // }
+    if (Object.hasOwnProperty.call(this.services, type))
+    {
+      return this.services[type];
+    }
+
+    return null;
+  }
+
+  /*public*/ /*void*/ RemoveService(/*Type*/ type)
+  {
+    if (type == null)
+    {
+      throw new CArgumentNullException("type");
+    }
+
+    //services.Remove(type);
+    delete this.services[type];
   }
 };
 
@@ -2864,7 +2987,7 @@ CGame = class CGame extends IDisposable {
 
     // LaunchParameters = new LaunchParameters();
     // Components = new GameComponentCollection();
-    // Services = new GameServiceContainer();
+    this.Services = new CGameServiceContainer();
     // Content = new ContentManager(Services);
 
     // updateableComponents = new List<IUpdateable>();
@@ -2888,7 +3011,7 @@ CGame = class CGame extends IDisposable {
     this.previousTicks = 0;
     this.updateFrameLag = 0;
 
-    // Window = FNAPlatform.CreateWindow();
+    // Window = CFNAPlatform.CreateWindow();
     // Mouse.WindowHandle = Window.Handle;
     // TouchPanel.WindowHandle = Window.Handle;
 
@@ -3277,14 +3400,345 @@ CFNAWindow = class CFNAWindow extends CGameWindow {
   {
     return CFNAPlatform.GetWindowBounds(this.window);
   }
+
+
+  /*public*/ /*abstract*/ /*void*/ BeginScreenDeviceChange(/*bool*/ willBeFullScreen) {
+    this.wantsFullscreen = willBeFullScreen;
+  }
+
+  /*public*/ /*abstract*/ /*void*/ EndScreenDeviceChange(
+    /*string*/ screenDeviceName,
+    /*int*/ clientWidth,
+    /*int*/ clientHeight
+  ) {
+    /*string*/ let prevName = this.deviceName;
+    CFNAPlatform.ApplyWindowChanges(
+      this.window,
+      clientWidth,
+      clientHeight,
+      this.wantsFullscreen,
+      screenDeviceName,
+      this
+    );
+    if (this.deviceName !== prevName)
+    {
+      this.OnScreenDeviceNameChanged();
+    }
+  }
+
+  /*public*/ /*void*/ EndScreenDeviceChange1(/*string*/ screenDeviceName)
+  {
+    this.EndScreenDeviceChange(
+      screenDeviceName,
+      this.ClientBounds.Width,
+      this.ClientBounds.Height
+    );
+  }
+};
+
+CBackbuffer = class CBackbuffer {
+};
+
+CNullBackbuffer = class CNullBackbuffer {
+  /*public*/ /*NullBackbuffer*/ constructor(/*int*/ width, /*int*/ height, /*DepthFormat*/ depthFormat)
+  {
+    this.Width = width;
+    this.Height = height;
+    this.DepthFormat = depthFormat;
+  }
+
+  /*public*/ /*void*/ ResetFramebuffer(
+    /*PresentationParameters*/ presentationParameters,
+    /*bool*/ renderTargetBound
+  ) {
+    this.Width = presentationParameters.BackBufferWidth;
+    this.Height = presentationParameters.BackBufferHeight;
+  }
+};
+
+COpenGLBackbuffer = class COpenGLBackbuffer {
+  /*public*/ /*OpenGLBackbuffer*/ constructor(
+    /*OpenGLDevice*/ device,
+    /*int*/ width,
+    /*int*/ height,
+    /*DepthFormat*/ depthFormat,
+    /*int*/ multiSampleCount
+  ) {
+    throw new CNotImplementedException();
+  }
+};
+
+
+COpenGLDevice = class COpenGLDevice {
+  constructor(presentationParameters, adapter)
+  {
+    this.PresentationParameters = presentationParameters;
+    this.Adapter = adapter;
+    this.gl = this.PresentationParameters.DeviceWindowHandle.getContext("webgl");
+
+    // Initialize the faux-backbuffer
+    if (this.UseFauxBackbuffer(presentationParameters, adapter.CurrentDisplayMode))
+    {
+      if (!this.supportsFauxBackbuffer)
+      {
+        throw new CNoSuitableGraphicsDeviceException(
+          "Your hardware does not support the faux-backbuffer!" +
+          "\n\nKeep the window/backbuffer resolution the same."
+        );
+      }
+      this.Backbuffer = new COpenGLBackbuffer(
+        this,
+        presentationParameters.BackBufferWidth,
+        presentationParameters.BackBufferHeight,
+        presentationParameters.DepthStencilFormat,
+        presentationParameters.MultiSampleCount
+      );
+    }
+    else
+    {
+      this.Backbuffer = new CNullBackbuffer(
+        presentationParameters.BackBufferWidth,
+        presentationParameters.BackBufferHeight,
+        this.windowDepthFormat
+      );
+    }
+  }
+
+  UseFauxBackbuffer(pp, dm) {
+    return false;
+  }
+
+  /*public*/ /*void*/ ResetBackbuffer(
+    /*PresentationParameters*/ presentationParameters,
+    /*GraphicsAdapter*/ adapter,
+    /*bool*/ renderTargetBound
+  ) {
+    if (this.UseFauxBackbuffer(presentationParameters, adapter.CurrentDisplayMode))
+    {
+      if (this.Backbuffer instanceof CNullBackbuffer)
+      {
+        if (!this.supportsFauxBackbuffer)
+        {
+          throw new CNoSuitableGraphicsDeviceException(
+            "Your hardware does not support the faux-backbuffer!" +
+            "\n\nKeep the window/backbuffer resolution the same."
+          );
+        }
+        this.Backbuffer = new COpenGLBackbuffer(
+          this,
+          presentationParameters.BackBufferWidth,
+          presentationParameters.BackBufferHeight,
+          presentationParameters.DepthStencilFormat,
+          presentationParameters.MultiSampleCount
+        );
+      }
+      else
+      {
+        this.Backbuffer.ResetFramebuffer(
+          presentationParameters,
+          renderTargetBound
+        );
+      }
+    }
+    else
+    {
+      if (this.Backbuffer instanceof COpenGLBackbuffer)
+      {
+        //(Backbuffer as OpenGLBackbuffer).Dispose();
+        this.Backbuffer.Dispose();
+        this.Backbuffer = new CNullBackbuffer(
+          presentationParameters.BackBufferWidth,
+          presentationParameters.BackBufferHeight,
+          this.windowDepthFormat
+        );
+      }
+      else
+      {
+        this.Backbuffer.ResetFramebuffer(
+          presentationParameters,
+          renderTargetBound
+        );
+      }
+    }
+  }
+
+};
+
+CModernOpenGLDevice = class CModernOpenGLDevice {
+  constructor(presentationParameters, adapter)
+  {
+    this.PresentationParameters = presentationParameters;
+    this.Adapter = adapter;
+  }
 };
 
 CFNAPlatform = class CFNAPlatform {
+
+  /*public*/ static /*IGLDevice*/ CreateGLDevice(
+    /*PresentationParameters*/ presentationParameters,
+    /*GraphicsAdapter*/ adapter
+  ) {
+    // This loads the OpenGL entry points.
+    if (CEnvironment.GetEnvironmentVariable("FNA_GRAPHICS_FORCE_GLDEVICE") === "ModernGLDevice")
+    {
+      // FIXME: This is still experimental! -flibit
+      return new CModernGLDevice(presentationParameters, adapter);
+    }
+    return new COpenGLDevice(presentationParameters, adapter);
+  }
+
 
   /*public*/ static /*Rectangle*/ GetWindowBounds(/*IntPtr*/ window)
   {
     let rect = window.getBoundingClientRect()
     return new CRectangle(rect.x, rect.y, rect.width, rect.height);
+  }
+
+  /*public*/ static /*bool*/ SupportsOrientationChanges()
+  {
+    return false;
+  }
+
+  /*public*/ static /*void*/ ApplyWindowChanges(
+    /*IntPtr*/ window,
+    /*int*/ clientWidth,
+    /*int*/ clientHeight,
+    /*bool*/ wantsFullscreen,
+    /*string*/ screenDeviceName,
+    /*ref*/ /*string*/ resultDeviceName
+  ) {
+    // bool center = false;
+    // if (	Environment.GetEnvironmentVariable("FNA_GRAPHICS_ENABLE_HIGHDPI") == "1" &&
+    //   OSVersion.Equals("Mac OS X")	)
+    // {
+    //   /* For high-DPI windows, halve the size!
+    //    * The drawable size is now the primary width/height, so
+    //    * the window needs to accommodate the GL viewport.
+    //    * -flibit
+    //    */
+    //   clientWidth /= 2;
+    //   clientHeight /= 2;
+    // }
+
+    // // When windowed, set the size before moving
+    // if (!wantsFullscreen)
+    // {
+    //   bool resize = false;
+    //   if ((SDL.SDL_GetWindowFlags(window) & (uint) SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN) != 0)
+    //   {
+    //     SDL.SDL_SetWindowFullscreen(window, 0);
+    //     resize = true;
+    //   }
+    //   else
+    //   {
+    //     int w, h;
+    //     SDL.SDL_GetWindowSize(
+    //       window,
+    //       out w,
+    //       out h
+    //     );
+    //     resize = (clientWidth != w || clientHeight != h);
+    //   }
+    //   if (resize)
+    //   {
+    //     SDL.SDL_SetWindowSize(window, clientWidth, clientHeight);
+    //     center = true;
+    //   }
+    // }
+
+    // // Get on the right display!
+    // int displayIndex = 0;
+    // for (int i = 0; i < GraphicsAdapter.Adapters.Count; i += 1)
+    // {
+    //   if (screenDeviceName == GraphicsAdapter.Adapters[i].DeviceName)
+    //   {
+    //     displayIndex = i;
+    //     break;
+    //   }
+    // }
+
+    // // Just to be sure, become a window first before changing displays
+    // if (resultDeviceName != screenDeviceName)
+    // {
+    //   SDL.SDL_SetWindowFullscreen(window, 0);
+    //   resultDeviceName = screenDeviceName;
+    //   center = true;
+    // }
+
+    // // Window always gets centered on changes, per XNA behavior
+    // if (center)
+    // {
+    //   int pos = SDL.SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex);
+    //   SDL.SDL_SetWindowPosition(
+    //     window,
+    //     pos,
+    //     pos
+    //   );
+    // }
+
+    // // Set fullscreen after we've done all the ugly stuff.
+    // if (wantsFullscreen)
+    // {
+    //   if ((SDL.SDL_GetWindowFlags(window) & (uint) SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN) == 0)
+    //   {
+    //     /* If we're still hidden, we can't actually go fullscreen yet.
+    //      * But, we can at least set the hidden window size to match
+    //      * what the window/drawable sizes will eventually be later.
+    //      * -flibit
+    //      */
+    //     SDL.SDL_DisplayMode mode;
+    //     SDL.SDL_GetCurrentDisplayMode(
+    //       displayIndex,
+    //       out mode
+    //     );
+    //     SDL.SDL_SetWindowSize(window, mode.w, mode.h);
+    //   }
+    //   SDL.SDL_SetWindowFullscreen(
+    //     window,
+    //     (uint) SDL.SDL_WindowFlags.SDL_WINDOW_FULLSCREEN_DESKTOP
+    //   );
+    // }
+  }
+
+  /*public*/ static /*void*/ SetPresentationInterval(/*PresentInterval*/ interval)
+  {
+    // if (interval == PresentInterval.Default || interval == PresentInterval.One)
+    // {
+    //   bool disableLateSwapTear = (
+    //     OSVersion.Equals("Mac OS X") ||
+    //     OSVersion.Equals("WinRT") ||
+    //     Environment.GetEnvironmentVariable("FNA_OPENGL_DISABLE_LATESWAPTEAR") == "1"
+    //   );
+    //   if (disableLateSwapTear)
+    //   {
+    //     SDL.SDL_GL_SetSwapInterval(1);
+    //   }
+    //   else
+    //   {
+    //     if (SDL.SDL_GL_SetSwapInterval(-1) != -1)
+    //     {
+    //       FNALoggerEXT.LogInfo("Using EXT_swap_control_tear VSync!");
+    //     }
+    //     else
+    //     {
+    //       FNALoggerEXT.LogInfo("EXT_swap_control_tear unsupported. Fall back to standard VSync.");
+    //       SDL.SDL_ClearError();
+    //       SDL.SDL_GL_SetSwapInterval(1);
+    //     }
+    //   }
+    // }
+    // else if (interval == PresentInterval.Immediate)
+    // {
+    //   SDL.SDL_GL_SetSwapInterval(0);
+    // }
+    // else if (interval == PresentInterval.Two)
+    // {
+    //   SDL.SDL_GL_SetSwapInterval(2);
+    // }
+    // else
+    // {
+    //   throw new NotSupportedException("Unrecognized PresentInterval!");
+    // }
   }
 
   /*public*/ static /*void*/ async RunLoop(/*Game*/ game)
@@ -3631,6 +4085,737 @@ CFNAPlatform = class CFNAPlatform {
 
     // We out.
     game.Exit();
+  }
+};
+
+/// <summary>
+/// Defines types of surface formats.
+/// </summary>
+/*public*/ /*enum*/ ESurfaceFormat = {
+  /// <summary>
+  /// Unsigned 32-bit ARGB pixel format for store 8 bits per channel.
+  /// </summary>
+  Color: "ESurfaceFormat.Color",
+  /// <summary>
+  /// Unsigned 16-bit BGR pixel format for store 5 bits for blue, 6 bits for green, and 5 bits for red.
+  /// </summary>
+  Bgr565: "ESurfaceFormat.Bgr565",
+  /// <summary>
+  /// Unsigned 16-bit BGRA pixel format where 5 bits reserved for each color and last bit is reserved for alpha.
+  /// </summary>
+  Bgra5551: "ESurfaceFormat.Bgra5551",
+  /// <summary>
+  /// Unsigned 16-bit BGRA pixel format for store 4 bits per channel.
+  /// </summary>
+  Bgra4444: "ESurfaceFormat.Bgra4444",
+  /// <summary>
+  /// DXT1. Texture format with compression. Surface dimensions must be a multiple 4.
+  /// </summary>
+  Dxt1: "ESurfaceFormat.Dxt1",
+  /// <summary>
+  /// DXT3. Texture format with compression. Surface dimensions must be a multiple 4.
+  /// </summary>
+  Dxt3: "ESurfaceFormat.Dxt3",
+  /// <summary>
+  /// DXT5. Texture format with compression. Surface dimensions must be a multiple 4.
+  /// </summary>
+  Dxt5: "ESurfaceFormat.Dxt5",
+  /// <summary>
+  /// Signed 16-bit bump-map format for store 8 bits for <c>u</c> and <c>v</c> data.
+  /// </summary>
+  NormalizedByte2: "ESurfaceFormat.NormalizedByte2",
+  /// <summary>
+  /// Signed 16-bit bump-map format for store 8 bits per channel.
+  /// </summary>
+  NormalizedByte4: "ESurfaceFormat.NormalizedByte4",
+  /// <summary>
+  /// Unsigned 32-bit RGBA pixel format for store 10 bits for each color and 2 bits for alpha.
+  /// </summary>
+  Rgba1010102: "ESurfaceFormat.Rgba1010102",
+  /// <summary>
+  /// Unsigned 32-bit RG pixel format using 16 bits per channel.
+  /// </summary>
+  Rg32: "ESurfaceFormat.Rg32",
+  /// <summary>
+  /// Unsigned 64-bit RGBA pixel format using 16 bits per channel.
+  /// </summary>
+  Rgba64: "ESurfaceFormat.Rgba64",
+  /// <summary>
+  /// Unsigned A 8-bit format for store 8 bits to alpha channel.
+  /// </summary>
+  Alpha8: "ESurfaceFormat.Alpha8",
+  /// <summary>
+  /// IEEE 32-bit R float format for store 32 bits to red channel.
+  /// </summary>
+  Single: "ESurfaceFormat.Single",
+  /// <summary>
+  /// IEEE 64-bit RG float format for store 32 bits per channel.
+  /// </summary>
+  Vector2: "ESurfaceFormat.Vector2",
+  /// <summary>
+  /// IEEE 128-bit RGBA float format for store 32 bits per channel.
+  /// </summary>
+  Vector4: "ESurfaceFormat.Vector4",
+  /// <summary>
+  /// Float 16-bit R format for store 16 bits to red channel.
+  /// </summary>
+  HalfSingle: "ESurfaceFormat.HalfSingle",
+  /// <summary>
+  /// Float 32-bit RG format for store 16 bits per channel.
+  /// </summary>
+  HalfVector2: "ESurfaceFormat.HalfVector2",
+  /// <summary>
+  /// Float 64-bit ARGB format for store 16 bits per channel.
+  /// </summary>
+  HalfVector4: "ESurfaceFormat.HalfVector4",
+  /// <summary>
+  /// Float pixel format for high dynamic range data.
+  /// </summary>
+  HdrBlendable: "ESurfaceFormat.HdrBlendable",
+  /// <summary>
+  /// Unsigned 32-bit ABGR pixel format for store 8 bits per channel (XNA3)
+  /// </summary>
+  ColorBgraEXT: "ESurfaceFormat.ColorBgraEXT",
+}
+
+/// <summary>
+/// Defines formats for depth-stencil buffer.
+/// </summary>
+/*public*/ /*enum*/ EDepthFormat = {
+  /// <summary>
+  /// Depth-stencil buffer will not be created.
+  /// </summary>
+  None: "EDepthFormat.None",
+  /// <summary>
+  /// 16-bit depth buffer.
+  /// </summary>
+  Depth16: "EDepthFormat.Depth16",
+  /// <summary>
+  /// 24-bit depth buffer.
+  /// </summary>
+  Depth24: "EDepthFormat.Depth24",
+  /// <summary>
+  /// 32-bit depth-stencil buffer. Where 24-bit depth and 8-bit for stencil used.
+  /// </summary>
+  Depth24Stencil8: "EDepthFormat.Depth24Stencil8",
+}
+
+
+/// <summary>
+/// Defines how <see cref="GraphicsDevice.Present"/> updates the game window.
+/// </summary>
+EPresentInterval = {
+  /// <summary>
+  /// Equivalent to <see cref="PresentInterval.One"/>.
+  /// </summary>
+  Default: 0,
+  /// <summary>
+  /// The driver waits for the vertical retrace period, before updating window client area. Present operations are not affected more frequently than the screen refresh rate.
+  /// </summary>
+  One: 1,
+  /// <summary>
+  /// The driver waits for the vertical retrace period, before updating window client area. Present operations are not affected more frequently than every second screen refresh.
+  /// </summary>
+  Two: 2,
+  /// <summary>
+  /// The driver updates the window client area immediately. Present operations might be affected immediately. There is no limit for framerate.
+  /// </summary>
+  Immediate: 3,
+}
+
+/// <summary>
+/// Defines the orientation of the display.
+/// </summary>
+// [Flags]
+/*public*/ /*enum*/ EDisplayOrientation = {
+  /// <summary>
+  /// The default orientation.
+  /// </summary>
+  Default: 0,
+  /// <summary>
+  /// The display is rotated counterclockwise into a landscape orientation. Width is greater than height.
+  /// </summary>
+  LandscapeLeft: 1,
+  /// <summary>
+  /// The display is rotated clockwise into a landscape orientation. Width is greater than height.
+  /// </summary>
+  LandscapeRight: 2,
+  /// <summary>
+  /// The display is rotated as portrait, where height is greater than width.
+  /// </summary>
+  Portrait: 4
+}
+
+
+
+/// <summary>
+/// Defines if the previous content in a render target is preserved when it set on the graphics device.
+/// </summary>
+ERenderTargetUsage = {
+  /// <summary>
+  /// The render target content will not be preserved.
+  /// </summary>
+  DiscardContents: "ERenderTargetUsage.DiscardContents",
+  /// <summary>
+  /// The render target content will be preserved even if it is slow or requires extra memory.
+  /// </summary>
+  PreserveContents: "ERenderTargetUsage.PreserveContents",
+  /// <summary>
+  /// The render target content might be preserved if the platform can do so without a penalty in performance or memory usage.
+  /// </summary>
+  PlatformContents: "ERenderTargetUsage.PlatformContents",
+}
+
+/// <summary>
+/// Defines a set of graphic capabilities.
+/// </summary>
+/*public*/ /*enum*/ EGraphicsProfile = {
+  /// <summary>
+  /// Use a limited set of graphic features and capabilities, allowing the game to support the widest variety of devices.
+  /// </summary>
+  Reach: "EGraphicsProfile.Reach",
+  /// <summary>
+  /// Use the largest available set of graphic features and capabilities to target devices, that have more enhanced graphic capabilities.
+  /// </summary>
+  HiDef: "EGraphicsProfile.HiDef",
+}
+
+CGraphicsDeviceInformation = class CGraphicsDeviceInformation {
+};
+
+
+CGraphicsAdapter = class CGraphicsAdapter {
+  constructor()
+  {
+    this.DeviceName = "Default";
+  }
+  static get DefaultAdapter()
+  {
+    return new CGraphicsAdapter();
+  }
+};
+
+CTextureCollection = class CTextureCollection {
+};
+
+CSamplerStateCollection = class CSamplerStateCollection {
+};
+
+CGraphicsDevice = class CGraphicsDevice {
+  // Per XNA4 General Spec
+  //internal const int MAX_TEXTURE_SAMPLERS = 16;
+  get MAX_TEXTURE_SAMPLERS() { return 16; }
+
+  // Per XNA4 HiDef Spec
+  //internal const int MAX_VERTEX_ATTRIBUTES = 16;
+  //internal const int MAX_RENDERTARGET_BINDINGS = 4;
+  //internal const int MAX_VERTEXTEXTURE_SAMPLERS = 4;
+  get MAX_VERTEX_ATTRIBUTES() { return 16; }
+  get MAX_RENDERTARGET_BINDINGS() { return 4; }
+  get MAX_VERTEXTEXTURE_SAMPLERS() { return 4; }
+
+
+  constructor(
+    /*GraphicsAdapter*/ adapter,
+    /*GraphicsProfile*/ graphicsProfile,
+    /*PresentationParameters*/ presentationParameters
+  ) {
+    if (presentationParameters == null)
+    {
+      throw new CArgumentNullException("presentationParameters");
+    }
+
+		// We never lose devices, but lol XNA4 compliance -flibit
+		// public event EventHandler<EventArgs> DeviceLost;
+		// public event EventHandler<EventArgs> DeviceReset;
+		// public event EventHandler<EventArgs> DeviceResetting;
+		// public event EventHandler<ResourceCreatedEventArgs> ResourceCreated;
+		// public event EventHandler<ResourceDestroyedEventArgs> ResourceDestroyed;
+		// public event EventHandler<EventArgs> Disposing;
+    this.DeviceLost = new EventHandler();
+    this.DeviceReset = new EventHandler();
+    this.DeviceResetting = new EventHandler();
+    this.ResourceCreated = new EventHandler();
+    this.ResourceDestroyed = new EventHandler();
+    this.Disposing = new EventHandler();
+
+    // Set the properties from the constructor parameters.
+    this.Adapter = adapter;
+    this.PresentationParameters = presentationParameters;
+    this.GraphicsProfile = graphicsProfile;
+    this.PresentationParameters.MultiSampleCount = CMathHelper.ClosestMSAAPower(
+      this.PresentationParameters.MultiSampleCount
+    );
+
+    // Set up the IGLDevice
+    this.GLDevice = CFNAPlatform.CreateGLDevice(this.PresentationParameters, adapter);
+
+    if (typeof CInput !== 'undefined') {
+      // The mouse needs to know this for faux-backbuffer mouse scaling.
+      Input.Mouse.INTERNAL_BackBufferWidth = PresentationParameters.BackBufferWidth;
+      Input.Mouse.INTERNAL_BackBufferHeight = PresentationParameters.BackBufferHeight;
+
+      // The Touch Panel needs this too, for the same reason.
+      Input.Touch.TouchPanel.DisplayWidth = PresentationParameters.BackBufferWidth;
+      Input.Touch.TouchPanel.DisplayHeight = PresentationParameters.BackBufferHeight;
+    }
+
+    // Force set the default render states.
+    if (typeof CBlendState !== 'undefined') // TODO
+      this.BlendState = CBlendState.Opaque;
+    if (typeof CDepthStencilState !== 'undefined') // TODO
+      this.DepthStencilState = CDepthStencilState.Default;
+    if (typeof CRasterizerState !== 'undefined') // TODO
+      this.RasterizerState = CRasterizerState.CullCounterClockwise;
+
+    // Initialize the Texture/Sampler state containers
+    /*int*/ let maxTextures = CMath.Min(this.GLDevice.MaxTextureSlots, this.MAX_TEXTURE_SAMPLERS);
+    /*int*/ let maxVertexTextures = CMathHelper.Clamp(
+      this.GLDevice.MaxTextureSlots - this.MAX_TEXTURE_SAMPLERS,
+      0,
+      this.MAX_VERTEXTEXTURE_SAMPLERS
+    );
+    this.vertexSamplerStart = this.GLDevice.MaxTextureSlots - maxVertexTextures;
+    this.Textures = new CTextureCollection(
+      maxTextures,
+      this.modifiedSamplers
+    );
+    this.SamplerStates = new CSamplerStateCollection(
+      maxTextures,
+      this.modifiedSamplers
+    );
+    this.VertexTextures = new CTextureCollection(
+      maxVertexTextures,
+      this.modifiedVertexSamplers
+    );
+    this.VertexSamplerStates = new CSamplerStateCollection(
+      maxVertexTextures,
+      this.modifiedVertexSamplers
+    );
+
+    // Set the default viewport and scissor rect.
+    this.Viewport = new CViewport(this.PresentationParameters.Bounds);
+    this.ScissorRectangle = this.Viewport.Bounds;
+  }
+
+  /*public*/ /*void*/ Reset(
+    /*PresentationParameters*/ presentationParameters,
+    /*GraphicsAdapter*/ graphicsAdapter
+  ) {
+    if (presentationParameters == null)
+    {
+      throw new CArgumentNullException("presentationParameters");
+    }
+    this.PresentationParameters = presentationParameters;
+    this.Adapter = graphicsAdapter;
+
+    // Verify MSAA before we really start...
+    this.PresentationParameters.MultiSampleCount = CMath.Min(
+      CMathHelper.ClosestMSAAPower(
+        this.PresentationParameters.MultiSampleCount
+      ),
+      (this.GLDevice != null) ? this.GLDevice.MaxMultiSampleCount : 1
+    );
+
+    // We're about to reset, let the application know.
+    if (this.DeviceResetting != null)
+    {
+      this.DeviceResetting(this, CEventArgs.Empty);
+    }
+
+    /* FIXME: Why are we not doing this...? -flibit
+    lock (resourcesLock)
+    {
+      foreach (WeakReference resource in resources)
+      {
+        object target = resource.Target;
+        if (target != null)
+        {
+          (target as GraphicsResource).GraphicsDeviceResetting();
+        }
+      }
+
+      // Remove references to resources that have been garbage collected.
+      resources.RemoveAll(wr => !wr.IsAlive);
+    }
+    */
+
+    /* Reset the backbuffer first, before doing anything else.
+     * The GLDevice needs to know what we're up to right away.
+     * -flibit
+     */
+    if (this.GLDevice != null) {
+      this.GLDevice.ResetBackbuffer(
+        this.PresentationParameters,
+        this.Adapter,
+        this.RenderTargetCount > 0
+      );
+    }
+
+    if (typeof CInput !== 'undefined') {
+    // The mouse needs to know this for faux-backbuffer mouse scaling.
+    CInput.Mouse.INTERNAL_BackBufferWidth = this.PresentationParameters.BackBufferWidth;
+    CInput.Mouse.INTERNAL_BackBufferHeight = this.PresentationParameters.BackBufferHeight;
+
+    // The Touch Panel needs this too, for the same reason.
+    CInput.Touch.TouchPanel.DisplayWidth = this.PresentationParameters.BackBufferWidth;
+    CInput.Touch.TouchPanel.DisplayHeight = this.PresentationParameters.BackBufferHeight;
+    }
+
+// #if WIIU_GAMEPAD
+//     wiiuPixelData = new byte[
+//       this.PresentationParameters.BackBufferWidth *
+//       this.PresentationParameters.BackBufferHeight *
+//       4
+//     ];
+// #endif
+
+    // Now, update the viewport
+    this.Viewport = new CViewport(
+      0,
+      0,
+      this.PresentationParameters.BackBufferWidth,
+      this.PresentationParameters.BackBufferHeight
+    );
+
+    // Update the scissor rectangle to our new default target size
+    this.ScissorRectangle = new CRectangle(
+      0,
+      0,
+      this.PresentationParameters.BackBufferWidth,
+      this.PresentationParameters.BackBufferHeight
+    );
+
+    // We just reset, let the application know.
+    if (this.DeviceReset != null)
+    {
+      this.DeviceReset(this, CEventArgs.Empty);
+    }
+  }
+
+  // TODO: Hook this up to GraphicsResource
+  /*internal*/ /*void*/ OnResourceCreated()
+  {
+    if (this.ResourceCreated != null)
+    {
+      this.ResourceCreated(this, /*(ResourceCreatedEventArgs)*/ CEventArgs.Empty);
+    }
+  }
+
+  // TODO: Hook this up to GraphicsResource
+  /*internal*/ /*void*/ OnResourceDestroyed()
+  {
+    if (this.ResourceDestroyed != null)
+    {
+      this.ResourceDestroyed(this, /*(ResourceDestroyedEventArgs)*/ CEventArgs.Empty);
+    }
+  }
+
+};
+
+CPreparingDeviceSettingsEventArgs = class CPreparingDeviceSettingsEventArgs {
+  constructor(gdi) {
+    this.gdi = gdi;
+  }
+};
+
+CGraphicsDeviceManager = class CGraphicsDeviceManager {
+  static get DefaultBackBufferWidth()
+  {
+    return 800;
+  }
+
+  static get DefaultBackBufferHeight()
+  {
+    return 600;
+  }
+
+  /*public*/ /*GraphicsDeviceManager*/ constructor(/*Game*/ game)
+  {
+    if (game == null)
+    {
+      throw new CArgumentNullException("The game cannot be null!");
+    }
+
+    this.game = game;
+
+
+    /*
+		public event EventHandler<EventArgs> Disposed;
+		public event EventHandler<EventArgs> DeviceCreated;
+		public event EventHandler<EventArgs> DeviceDisposing;
+		public event EventHandler<EventArgs> DeviceReset;
+		public event EventHandler<EventArgs> DeviceResetting;
+		public event EventHandler<PreparingDeviceSettingsEventArgs> PreparingDeviceSettings;
+    */
+    this.Disposed = new EventHandler();
+    this.DeviceCreated = new EventHandler();
+    this.DeviceDisposing = new EventHandler();
+    this.DeviceReset = new EventHandler();
+    this.DeviceResetting = new EventHandler();
+    this.PreparingDeviceSettings = new EventHandler();
+
+
+    this.GraphicsProfile = EGraphicsProfile.HiDef;
+    this.graphicsDevice = null;
+
+    this.supportedOrientations = EDisplayOrientation.Default;
+
+    this.PreferredBackBufferHeight = CGraphicsDeviceManager.DefaultBackBufferHeight;
+    this.PreferredBackBufferWidth = CGraphicsDeviceManager.DefaultBackBufferWidth;
+
+    this.PreferredBackBufferFormat = ESurfaceFormat.Color;
+    this.PreferredDepthStencilFormat = EDepthFormat.Depth24;
+
+    this.SynchronizeWithVerticalRetrace = true;
+
+    this.PreferMultiSampling = false;
+
+    if (game.Services.GetService(/*typeof*/("IGraphicsDeviceManager")) != null)
+    {
+      throw new CArgumentException("Graphics Device Manager Already Present");
+    }
+
+    game.Services.AddService(/*typeof*/("IGraphicsDeviceManager"), this);
+    game.Services.AddService(/*typeof*/("IGraphicsDeviceService"), this);
+
+    this.useResizedBackBuffer = false;
+    game.Window.ClientSizeChanged["+="](this.INTERNAL_OnClientSizeChanged, this);
+  }
+
+
+  /*public*/ /*GraphicsDevice*/ get GraphicsDevice()
+  {
+    /* FIXME: If you call this before CGame.Initialize(), you can
+     * actually get a device in XNA4. But, even in XNA4, Game.Run
+     * is what calls CreateDevice! So is this check accurate?
+     * -flibit
+     */
+    if (this.graphicsDevice == null)
+    {
+      (/*(IGraphicsDeviceManager)*/ this).CreateDevice();
+    }
+    return this.graphicsDevice;
+  }
+
+
+  /*void*/ /*IGraphicsDeviceManager.*/ CreateDevice()
+  {
+    // Set the default device information
+    /*GraphicsDeviceInformation*/ let gdi = new CGraphicsDeviceInformation();
+    gdi.Adapter = CGraphicsAdapter.DefaultAdapter;
+    gdi.GraphicsProfile = this.GraphicsProfile;
+    gdi.PresentationParameters = new CPresentationParameters();
+    gdi.PresentationParameters.DeviceWindowHandle = this.game.Window.Handle;
+    gdi.PresentationParameters.DepthStencilFormat = this.PreferredDepthStencilFormat;
+    gdi.PresentationParameters.IsFullScreen = false;
+
+    // Give the user a chance to change the initial settings
+    this.OnPreparingDeviceSettings(
+      this,
+      new CPreparingDeviceSettingsEventArgs(gdi)
+    );
+
+    // Apply these settings to this GraphicsDeviceManager
+    this.GraphicsProfile = gdi.GraphicsProfile;
+    this.PreferredBackBufferFormat = gdi.PresentationParameters.BackBufferFormat;
+    this.PreferredDepthStencilFormat = gdi.PresentationParameters.DepthStencilFormat;
+
+    // Create the GraphicsDevice, hook the callbacks
+    this.graphicsDevice = new CGraphicsDevice(
+      gdi.Adapter,
+      gdi.GraphicsProfile,
+      gdi.PresentationParameters
+    );
+    this.graphicsDevice.Disposing["+="](this.OnDeviceDisposing, this);
+    this.graphicsDevice.DeviceResetting["+="](this.OnDeviceResetting, this);
+    this.graphicsDevice.DeviceReset["+="](this.OnDeviceReset, this);
+
+    // Set device defaults
+    this.ApplyChanges();
+
+    // Call the DeviceCreated Event
+    this.OnDeviceCreated(this, CEventArgs.Empty);
+  }
+
+  /*public*/ /*void*/ ApplyChanges()
+  {
+    // Calling ApplyChanges() before CreateDevice() should have no effect.
+    if (this.graphicsDevice == null)
+    {
+      return;
+    }
+
+    // Recreate device information before resetting
+    /*GraphicsDeviceInformation*/ let gdi = new CGraphicsDeviceInformation();
+    gdi.Adapter = this.GraphicsDevice.Adapter;
+    gdi.GraphicsProfile = this.GraphicsDevice.GraphicsProfile;
+    gdi.PresentationParameters = this.GraphicsDevice.PresentationParameters.Clone();
+
+    /* Apply the GraphicsDevice changes to the new Parameters.
+     * Note that PreparingDeviceSettings can override any of these!
+     * -flibit
+     */
+    gdi.PresentationParameters.BackBufferFormat =
+      this.PreferredBackBufferFormat;
+    if (this.useResizedBackBuffer)
+    {
+      gdi.PresentationParameters.BackBufferWidth = this.resizedBackBufferWidth;
+      gdi.PresentationParameters.BackBufferHeight = this.resizedBackBufferHeight;
+      this.useResizedBackBuffer = false;
+    }
+    else
+    {
+      if (!CFNAPlatform.SupportsOrientationChanges())
+      {
+        gdi.PresentationParameters.BackBufferWidth = this.PreferredBackBufferWidth;
+        gdi.PresentationParameters.BackBufferHeight = this.PreferredBackBufferHeight;
+      }
+      else
+      {
+        /* Flip the backbuffer dimensions to scale
+         * appropriately to the current orientation.
+         */
+        /*int*/ let min = CMath.Min(this.PreferredBackBufferWidth, this.PreferredBackBufferHeight);
+        /*int*/ let max = CMath.Max(this.PreferredBackBufferWidth, this.PreferredBackBufferHeight);
+
+        if (gdi.PresentationParameters.DisplayOrientation == EDisplayOrientation.Portrait)
+        {
+          gdi.PresentationParameters.BackBufferWidth = min;
+          gdi.PresentationParameters.BackBufferHeight = max;
+        }
+        else
+        {
+          gdi.PresentationParameters.BackBufferWidth = max;
+          gdi.PresentationParameters.BackBufferHeight = min;
+        }
+      }
+    }
+    gdi.PresentationParameters.DepthStencilFormat = this.PreferredDepthStencilFormat;
+    gdi.PresentationParameters.IsFullScreen = this.IsFullScreen;
+    if (!this.PreferMultiSampling)
+    {
+      gdi.PresentationParameters.MultiSampleCount = 0;
+    }
+    else if (gdi.PresentationParameters.MultiSampleCount === 0)
+    {
+      /* XNA4 seems to have an upper limit of 8, but I'm willing to
+       * limit this only in GraphicsDeviceManager's default setting.
+       * If you want even higher values, Reset() with a custom value.
+       * -flibit
+       */
+      gdi.PresentationParameters.MultiSampleCount = CMath.Min(
+        this.GraphicsDevice.GLDevice.MaxMultiSampleCount,
+        8
+      );
+    }
+
+    // Give the user a chance to override the above settings.
+    this.OnPreparingDeviceSettings(
+      this,
+      new CPreparingDeviceSettingsEventArgs(gdi)
+    );
+
+    // Reset!
+    this.game.Window.BeginScreenDeviceChange(
+      gdi.PresentationParameters.IsFullScreen
+    );
+    this.game.Window.EndScreenDeviceChange(
+      gdi.Adapter.DeviceName,
+      gdi.PresentationParameters.BackBufferWidth,
+      gdi.PresentationParameters.BackBufferHeight
+    );
+    // FIXME: This should be before EndScreenDeviceChange! -flibit
+    this.GraphicsDevice.Reset(
+      gdi.PresentationParameters,
+      gdi.Adapter
+    );
+
+    // Apply the PresentInterval.
+    CFNAPlatform.SetPresentationInterval(
+      this.SynchronizeWithVerticalRetrace ?
+        gdi.PresentationParameters.PresentationInterval :
+        EPresentInterval.Immediate
+    );
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnDeviceCreated(/*object*/ sender, /*EventArgs*/ args)
+  {
+    if (this.DeviceCreated != null)
+    {
+      this.DeviceCreated(sender, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnDeviceDisposing(/*object*/ sender, /*EventArgs*/ args)
+  {
+    if (this.DeviceDisposing != null)
+    {
+      this.DeviceDisposing(sender, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnDeviceReset(/*object*/ sender, /*EventArgs*/ args)
+  {
+    if (this.DeviceReset != null)
+    {
+      this.DeviceReset(sender, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnDeviceResetting(/*object*/ sender, /*EventArgs*/ args)
+  {
+    if (this.DeviceResetting != null)
+    {
+      this.DeviceResetting(sender, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnPreparingDeviceSettings(
+    /*object*/ sender,
+    /*PreparingDeviceSettingsEventArgs*/ args
+  ) {
+    if (this.PreparingDeviceSettings != null)
+    {
+      this.PreparingDeviceSettings(sender, args);
+    }
+  }
+};
+
+CPresentationParameters = class CPresentationParameters {
+  get Bounds()
+  {
+    return new CRectangle(0, 0, this.BackBufferWidth, this.BackBufferHeight);
+  }
+
+  constructor()
+  {
+    this.BackBufferFormat = ESurfaceFormat.Color;
+    this.BackBufferWidth = CGraphicsDeviceManager.DefaultBackBufferWidth;
+    this.BackBufferHeight = CGraphicsDeviceManager.DefaultBackBufferHeight;
+    this.DeviceWindowHandle = null;//IntPtr.Zero;
+    this.IsFullScreen = false; // FIXME: Is this the default?
+    this.DepthStencilFormat = EDepthFormat.None;
+    this.MultiSampleCount = 0;
+    this.PresentationInterval = EPresentInterval.Default;
+    this.DisplayOrientation = EDisplayOrientation.Default;
+    this.RenderTargetUsage = ERenderTargetUsage.DiscardContents;
+  }
+
+  /*public*/ /*PresentationParameters*/ Clone()
+  {
+    /*CPresentationParameters*/ let clone = new CPresentationParameters();
+    clone.BackBufferFormat = this.BackBufferFormat;
+    clone.BackBufferHeight = this.BackBufferHeight;
+    clone.BackBufferWidth = this.BackBufferWidth;
+    clone.DeviceWindowHandle = this.DeviceWindowHandle;
+    clone.IsFullScreen = this.IsFullScreen;
+    clone.DepthStencilFormat = this.DepthStencilFormat;
+    clone.MultiSampleCount = this.MultiSampleCount;
+    clone.PresentationInterval = this.PresentationInterval;
+    clone.DisplayOrientation = this.DisplayOrientation;
+    clone.RenderTargetUsage = this.RenderTargetUsage;
+    return clone;
   }
 };
 

@@ -331,11 +331,17 @@ CEngine = class CEngine extends CGame {
   }
 
   static set Instance(value) {
-    CEngine.INTERNAL_Instance = value;
-    CEngine.viewPadding = 0;
-    CEngine.TimeRate = 1;
-    CEngine.TimeRateB = 1;
-    CEngine.FreezeTimer = 0.0;
+    if (CEngine.INTERNAL_Instance !== value)
+    {
+      CEngine.INTERNAL_Instance = value;
+      CEngine.viewPadding = 0;
+      CEngine.TimeRate = 1;
+      CEngine.TimeRateB = 1;
+      CEngine.FreezeTimer = 0.0;
+      CEngine.ClearColor = CColor.Black;
+      value.InactiveSleepTime = CTimeSpan.Zero;
+      CEngine.Graphics = new CGraphicsDeviceManager(value);
+    }
   }
 
   static get AssemblyDirectory()

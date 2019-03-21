@@ -106,6 +106,13 @@ CEnvironment = class CEnvironment {
   static get IsRunningOnWindows() {
     return false;
   }
+  static GetEnvironmentVariable(name) {
+    if (typeof localStorage !== "undefined") {
+      return localStorage.getItem(name);
+    } else {
+      throw new CNotImplementedException("CEnvironment::GetEnvironmentVariable");
+    }
+  }
 };
 
 
