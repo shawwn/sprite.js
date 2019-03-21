@@ -1,109 +1,3 @@
-function FisNumber(x) {
-  return typeof x === "number";
-}
-
-function FisFunction(x) {
-  return typeof x === "number";
-}
-
-function FisGenerator(x) {
-    return x.constructor.name === 'GeneratorFunction';
-}
-
-function FisEnumerator(x) {
-  if (x == null) return false;
-  if (FisGenerator(x)) return true;
-  return false;
-}
-
-function FasEnumerable(x) {
-  return new CEnumerable(x);
-}
-
-function FasEnumerator(x) {
-  return FasEnumerable(x).GetEnumerator();
-}
-
-function Fnewchar(n) {
-  return new Array(n);
-}
-
-function Fnewstring(chArray) {
-  return chArray.join('');
-}
-
-function Fnull(x) {
-  return x == null;
-}
-
-function FLength(x) {
-  return x.length;
-}
-
-function Fnameof(x, name) {
-  return name;
-}
-
-function FcharToInt(x) {
-  return x.charCodeAt(0);
-}
-
-function FSubstring(str, from = 0, upto = FLength(str)) {
-  return str.substr(from, upto);
-}
-
-function FTrim(str) {
-  return str.trim();
-}
-
-function FIndexOfAny(str, array) {
-  for (let x of array) {
-    var idx = str.indexOf(x);
-    if (idx > 0) {
-      return idx;
-    }
-  }
-  return -1;
-}
-
-function FLastIndexOf(str, c) {
-  return str.lastIndexOf(c);
-}
-
-function FLastIndexOfAny(str, array) {
-  var idx = -1;
-  for (let x of array) {
-    var idx2 = str.indexOf(x);
-    if (idx2 > idx) {
-      idx = idx2;
-    }
-  }
-  return idx;
-}
-
-Cstring = class Cstring {
-  static get Empty() {
-    return '';
-  }
-};
-
-CNotImplementedException = class CNotImplementedException extends Error {
-}
-
-CInvalidOperationException = class CInvalidOperationException extends Error {
-}
-
-CArgumentException = class CArgumentException extends Error {
-}
-
-CArgumentNullException = class CArgumentNullException extends Error {
-}
-
-CEnvironment = class CEnvironment {
-  static get IsRunningOnWindows() {
-    return false;
-  }
-};
 
 CPath = class CPath
 {
@@ -420,10 +314,10 @@ CPath = class CPath
   }
 };
 
-CEngine = class CEngine {
-  static get Instance() {
-    return CEngine._Instance ||
-      (CEngine._Instance = new CEngine());
+CEngine = class CEngine extends CGame {
+  constructor() {
+    super();
+    CEngine.Instance = this;
   }
 
   static get AssemblyDirectory()

@@ -62,282 +62,6 @@
 // the implied warranties of merchantability, fitness for a particular purpose and
 // non-infringement.
 
-
-Clong = class Clong {
-  static get MaxValue() { return BigInt(Number.MAX_SAFE_INTEGER); }
-  static get MinValue() { return -BigInt(Number.MAX_SAFE_INTEGER); }
-  static FromNumber(x) {
-    return BigInt(Math.floor(x));
-  }
-};
-
-Cdouble = class Cdouble {
-  static IsNaN(value) {
-    return isNaN(value);
-  }
-}
-
-CTimeSpan = class CTimeSpan {
-  /*public*/ /*const*/ /*long*/ static get TicksPerMillisecond() { return 10000n; }
-  /*private*/ /*const*/ /*double*/ static get MillisecondsPerTick() { return 0.0001; }
-  /*public*/ /*const*/ /*long*/ static get TicksPerSecond() { return 10000000n; }
-  /*private*/ /*const*/ /*double*/ static get SecondsPerTick() { return 1E-07; }
-  /*public*/ /*const*/ /*long*/ static get TicksPerMinute() { return 600000000n; }
-  /*private*/ /*const*/ /*double*/ static get MinutesPerTick() { return 1.66666666666667E-09; }
-  /*public*/ /*const*/ /*long*/ static get TicksPerHour() { return 36000000000n; }
-  /*private*/ /*const*/ /*double*/ static get HoursPerTick() { return 2.77777777777778E-11; }
-  /*public*/ /*const*/ /*long*/ static get TicksPerDay() { return 864000000000n; }
-  /*private*/ /*const*/ /*double*/ static get DaysPerTick() { 1.15740740740741E-12; }
-  /*private*/ /*const*/ /*int*/ static get MillisPerSecond() { return 1000n; }
-  /*private*/ /*const*/ /*int*/ static get MillisPerMinute() { return 60000n; }
-  /*private*/ /*const*/ /*int*/ static get MillisPerHour() { return 3600000n; }
-  /*private*/ /*const*/ /*int*/ static get MillisPerDay() { return 86400000n; }
-  /*internal*/ /*const*/ /*long*/ static get MaxSeconds() { return 922337203685n; }
-  /*internal*/ /*const*/ /*long*/ static get MinSeconds() { return -922337203685n; }
-  /*internal*/ /*const*/ /*long*/ static get MaxMilliSeconds() { return 922337203685477n; }
-  /*internal*/ /*const*/ /*long*/ static get MinMilliSeconds() { return -922337203685477n; }
-  /*internal*/ /*const*/ /*long*/ static get TicksPerTenthSecond() { return 1000000n; }
-  //internal long _ticks;
-  //private static volatile bool _legacyConfigChecked;
-  //private static volatile bool _legacyMode;
-
-  constructor(ticks = 0n)
-  {
-    this._ticks = BigInt(ticks);
-  }
-
-  static Now()
-  {
-    return CTimeSpan.FromMilliseconds(Date.now());
-  }
-
-  /*public*/ static /*TimeSpan*/ FromTicks(/*long*/ ticks)
-  {
-    return new CTimeSpan(ticks);
-  }
-
-  /*public*/ static /*TimeSpan*/ FromMilliseconds(/*double*/ value)
-  {
-    return CTimeSpan.Interval(value, 1);
-  }
-
-  /*public*/ static /*TimeSpan*/ FromSeconds(/*double*/ value)
-  {
-    return CTimeSpan.Interval(value, 1000);
-  }
-
-
-  /*public*/ static /*TimeSpan*/ FromMinutes(/*double*/ value)
-  {
-    return CTimeSpan.Interval(value, 60000);
-  }
-
-  /*public*/ static /*TimeSpan*/ FromHours(/*double*/ value)
-  {
-    return CTimeSpan.Interval(value, 3600000);
-  }
-
-  /*public*/ static /*TimeSpan*/ FromDays(/*double*/ value)
-  {
-    return CTimeSpan.Interval(value, 86400000);
-  }
-
-  /*public*/ static /*TimeSpan*/ FromDate(/*Date*/ date)
-  {
-    return CTimeSpan.FromMilliseconds(date.getTime());
-  }
-
-  /*public*/ static /*CTimeSpan*/ FromTime(/*int*/ hours, /*int*/ minutes, /*int*/ seconds)
-  {
-    return CTimeSpan.FromTicks(CTimeSpan.TimeToTicks(hours, minutes, seconds));
-  }
-
-  /*public*/ /*long*/ get Ticks()
-  {
-    return Number(this._ticks);
-  }
-
-  /*public*/ /*int*/ get Days()
-  {
-    return Number(this._ticks / 864000000000n);
-  }
-
-  /*public*/ /*int*/ get Hours()
-  {
-    return Number(this._ticks / 36000000000n % 24n);
-  }
-
-  /*public*/ /*int*/ get Milliseconds()
-  {
-    return Number(this._ticks / 10000n % 1000n);
-  }
-
-  /*public*/ /*int*/ get Minutes()
-  {
-    return Number(this._ticks / 600000000n % 60n);
-  }
-
-  /*public*/ /*int*/ get Seconds()
-  {
-    return Number(this._ticks / 10000000n % 60n);
-  }
-
-  /*public*/ /*double*/ get TotalDays()
-  {
-    return /*(double)*/ this.Multiply(1.15740740740741E-12);
-  }
-
-  /*public*/ /*double*/ get TotalHours()
-  {
-    return /*(double)*/ this.Multiply(2.77777777777778E-11);
-  }
-
-  /*public*/ /*double*/ get TotalMilliseconds()
-  {
-    /*double*/ var num = /*(double)*/ this.Multiply(0.0001);
-    if (num > 922337203685477.0)
-      return 922337203685477.0;
-    if (num < -922337203685477.0)
-      return -922337203685477.0;
-    return num;
-  }
-
-  /*public*/ /*double*/ get TotalMinutes()
-  {
-    return /*(double)*/ this.Multiply(1.66666666666667E-09);
-  }
-
-  /*public*/ /*double*/ get TotalSeconds()
-  {
-    return /*(double)*/ this.Multiply(1E-07);
-  }
-
-  /*public*/ /*TimeSpan*/ Add(/*TimeSpan*/ ts)
-  {
-    /*long*/ var ticks = this._ticks + ts._ticks;
-    if (this._ticks >> 63n === ts._ticks >> 63n && this._ticks >> 63n !== ticks >> 63n)
-      throw new COverflowException(CEnvironment.GetResourceString("TimeSpan overflowed because the duration is too long."));
-    return CTimeSpan.FromTicks(ticks);
-  }
-
-  /*public*/ /*TimeSpan*/ Subtract(/*TimeSpan*/ ts)
-  {
-    /*long*/ var ticks = this._ticks - ts._ticks;
-    if (this._ticks >> 63n !== ts._ticks >> 63n && this._ticks >> 63n !== ticks >> 63n)
-      throw new COverflowException(CEnvironment.GetResourceString("TimeSpan overflowed because the duration is too long."));
-    return CTimeSpan.FromTicks(ticks);
-  }
-
-  Multiply(num)
-  {
-    return Number(this._ticks) * Number(num);
-  }
-
-  /*private*/ static /*TimeSpan*/ Interval(/*double*/ value, /*int*/ scale)
-  {
-    if (Cdouble.IsNaN(value))
-      throw new CArgumentException(CEnvironment.GetResourceString("TimeSpan does not accept floating point Not-a-Number values."));
-    /*double*/ var num = value * Number(scale) + (Number(value) >= 0.0 ? 0.5 : -0.5);
-    if (num > 922337203685477.0 || num < -922337203685477.0)
-      throw new COverflowException(CEnvironment.GetResourceString("TimeSpan overflowed because the duration is too long."));
-    return new CTimeSpan(Clong.FromNumber(num) * 10000n);
-  }
-
-  /*internal*/ static /*long*/ TimeToTicks(/*int*/ hour, /*int*/ minute, /*int*/ second)
-  {
-    /*long*/ var num = Clong.FromNumber(hour) * 3600n + Clong.FromNumber(minute) * 60n + Clong.FromNumber(second);
-    if (num > 922337203685n || num < -922337203685n)
-      throw new CArgumentOutOfRangeException(null, CEnvironment.GetResourceString("TimeSpan overflowed because the duration is too long."));
-    return num * 10000000n;
-  }
-
-  static get Zero() { return new CTimeSpan(0n); }
-  static get MaxValue() { return new CTimeSpan(Clong.MaxValue); }
-  static get MinValue() { return new CTimeSpan(Clong.MinValue); }
-};
-
-CStopwatch = class CStopwatch
-{
-  /*public*/ static /*readonly*/ /*long*/ get Frequency() { return 1E14; }
-  /*public*/ static /*readonly*/ /*bool*/ get IsHighResolution() { return true; }
-
-  constructor()
-  {
-    this.elapsed = 0;
-    this.started = 0;
-    this.is_running = false;
-  }
-
-  static GetTimestamp()
-  {
-    return performance.now() * 1E11;
-  }
-
-  static StartNew()
-  {
-    var stopwatch = new CStopwatch();
-    stopwatch.Start();
-    return stopwatch;
-  }
-
-  /*public*/ /*TimeSpan*/ get Elapsed()
-  {
-    if (CStopwatch.IsHighResolution)
-      return CTimeSpan.FromTicks(Clong.FromNumber(this.ElapsedTicks / (CStopwatch.Frequency / 10000000)));
-    return CTimeSpan.FromTicks(this.ElapsedTicks);
-  }
-
-  /*public*/ /*long*/ get ElapsedMilliseconds()
-  {
-    if (CStopwatch.IsHighResolution)
-      return this.ElapsedTicks / (CStopwatch.Frequency / 1000);
-    return /*checked*/ (/*(long)*/ this.Elapsed.TotalMilliseconds);
-  }
-
-  /*public*/ /*long*/ get ElapsedTicks()
-  {
-    if (!this.is_running)
-      return this.elapsed;
-    return CStopwatch.GetTimestamp() - this.started + this.elapsed;
-  }
-
-  /*public*/ /*bool*/ get IsRunning()
-  {
-    return this.is_running;
-  }
-
-  /*public*/ /*void*/ Reset()
-  {
-    this.elapsed = 0;
-    this.is_running = false;
-  }
-
-  /*public*/ /*void*/ Start()
-  {
-    if (this.is_running)
-      return;
-    this.started = CStopwatch.GetTimestamp();
-    this.is_running = true;
-  }
-
-  /*public*/ /*void*/ Stop()
-  {
-    if (!this.is_running)
-      return;
-    this.elapsed += CStopwatch.GetTimestamp() - this.started;
-    if (this.elapsed < 0)
-      this.elapsed = 0;
-    this.is_running = false;
-  }
-
-  /*public*/ /*void*/ Restart()
-  {
-    this.started = CStopwatch.GetTimestamp();
-    this.elapsed = 0;
-    this.is_running = true;
-  }
-};
-
 CGameTime = class CGameTime {
   constructor(/*TimeSpan*/ totalRealTime = CTimeSpan.Zero, /*TimeSpan*/ elapsedRealTime = CTimeSpan.Zero, /*bool*/ isRunningSlowly = false)
   {
@@ -358,6 +82,8 @@ CMath = class CMath {
   static Atan(x) { return Math.atan(x); }
   static Sqrt(x) { return Math.sqrt(x); }
   static Sign(x) { return Math.sign(x); }
+  static Min(x, y) { return Math.min(x, y); }
+  static Max(x, y) { return Math.max(x, y); }
   static Clamp(a, b, t) { return Math.max(a, Math.min(b, t)); }
 };
 
@@ -2811,8 +2537,417 @@ CColor = class CColor {
   }
 }
 
-CGame = class CGame {
-  Tick()
+IDisposable = class IDisposable {
+  Dispose() {
+    throw new Error("Not implemented");
+  }
+}
+
+CEventArgs = class CEventArgs {
+  /*public*/ static /*readonly*/ /*EventArgs*/ get Empty(){
+    if (CEventArgs.INTERNAL_Empty == null)
+      CEventArgs.INTERNAL_Empty = new CEventArgs();
+    return CEventArgs.INTERNAL_Empty;
+  }
+};
+
+CGame = class CGame extends IDisposable {
+	/*private*/ static /*readonly*/ /*TimeSpan*/ get MaxElapsedTime() {
+    if (typeof CGame.INTERNAL_MaxElapsedTime === "undefined") {
+      CGame.INTERNAL_MaxElapsedTime = CTimeSpan.FromMilliseconds(500);
+    }
+    return CGame.INTERNAL_MaxElapsedTime;
+  }
+
+  constructor() {
+    super();
+
+    // AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+
+    // LaunchParameters = new LaunchParameters();
+    // Components = new GameComponentCollection();
+    // Services = new GameServiceContainer();
+    // Content = new ContentManager(Services);
+
+    // updateableComponents = new List<IUpdateable>();
+    // currentlyUpdatingComponents = new List<IUpdateable>();
+    // drawableComponents = new List<IDrawable>();
+    // currentlyDrawingComponents = new List<IDrawable>();
+
+    // IsMouseVisible = false;
+    // IsFixedTimeStep = true;
+    this.IsFixedTimeStep = true;
+    this.INTERNAL_isActive = false;
+    this.TargetElapsedTime = CTimeSpan.FromTicks(166667); // 60fps
+    this.InactiveSleepTime = CTimeSpan.FromSeconds(0.02);
+
+    this.hasInitialized = false;
+    this.suppressDraw = false;
+    this.isDisposed = false;
+
+    this.gameTime = new CGameTime();
+    this.accumulatedElapsedTime = CTimeSpan.Zero;
+    this.previousTicks = 0;
+    this.updateFrameLag = 0;
+
+    // Window = FNAPlatform.CreateWindow();
+    // Mouse.WindowHandle = Window.Handle;
+    // TouchPanel.WindowHandle = Window.Handle;
+
+    // FrameworkDispatcher.Update();
+
+    // Ready to run the loop!
+    this.RunApplication = true;
+  }
+
+  get IsActive() { return this.INTERNAL_isActive; }
+  set IsActive(value) {
+    if (this.INTERNAL_isActive !== value)
+    {
+      this.INTERNAL_isActive = value;
+      if (value) {
+        this.OnActivated(this, CEventArgs.Empty);
+      } else {
+        this.OnDeactivated(this, CEventArgs.Empty);
+      }
+    }
+  }
+
+  /*
+  private TimeSpan INTERNAL_targetElapsedTime;
+  public TimeSpan TargetElapsedTime
   {
+    get
+    {
+      return INTERNAL_targetElapsedTime;
+    }
+    set
+    {
+      if (value <= TimeSpan.Zero)
+      {
+        throw new ArgumentOutOfRangeException(
+          "The time must be positive and non-zero.",
+          default(Exception)
+        );
+      }
+
+      INTERNAL_targetElapsedTime = value;
+    }
+  }
+  */
+  get TargetElapsedTime() { return this.INTERNAL_targetElapsedTime; }
+  set TargetElapsedTime(value) {
+      if (value["<="](CTimeSpan.Zero))
+      {
+        throw new CArgumentOutOfRangeException(
+          "The time must be positive and non-zero."
+        );
+      }
+      this.INTERNAL_targetElapsedTime = value;
+  }
+
+  AssertNotDisposed()
+  {
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ Draw(/*GameTime*/ gameTime)
+  {
+    console.log(["CGame::Draw", gameTime]);
+    // lock (drawableComponents)
+    // {
+    //   for (int i = 0; i < drawableComponents.Count; i += 1)
+    //   {
+    //     currentlyDrawingComponents.Add(drawableComponents[i]);
+    //   }
+    // }
+    // foreach (IDrawable drawable in currentlyDrawingComponents)
+    // {
+    //   if (drawable.Visible)
+    //   {
+    //     drawable.Draw(gameTime);
+    //   }
+    // }
+    // currentlyDrawingComponents.Clear();
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ Update(/*GameTime*/ gameTime)
+  {
+    console.log(["CGame::Update", gameTime]);
+    // lock (updateableComponents)
+    // {
+    //   for (int i = 0; i < updateableComponents.Count; i += 1)
+    //   {
+    //     currentlyUpdatingComponents.Add(updateableComponents[i]);
+    //   }
+    // }
+    // foreach (IUpdateable updateable in currentlyUpdatingComponents)
+    // {
+    //   if (updateable.Enabled)
+    //   {
+    //     updateable.Update(gameTime);
+    //   }
+    // }
+    // currentlyUpdatingComponents.Clear();
+
+    // FrameworkDispatcher.Update();
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnExiting(/*object*/ sender, /*EventArgs*/ args)
+  {
+    if (this.Exiting != null)
+    {
+      this.Exiting(this, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnActivated(/*object*/ sender, /*EventArgs*/ args)
+  {
+    this.AssertNotDisposed();
+    if (this.Activated != null)
+    {
+      this.Activated(this, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ OnDeactivated(/*object*/ sender, /*EventArgs*/ args)
+  {
+    this.AssertNotDisposed();
+    if (this.Deactivated != null)
+    {
+      this.Deactivated(this, args);
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*bool*/ BeginDraw()
+  {
+    return true;
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ EndDraw()
+  {
+    if (this.GraphicsDevice != null)
+    {
+      this.GraphicsDevice.Present();
+    }
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ BeginRun()
+  {
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ EndRun()
+  {
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ LoadContent()
+  {
+  }
+
+  /*protected*/ /*virtual*/ /*void*/ UnloadContent()
+  {
+  }
+
+  /*private*/ /*void*/ DoInitialize()
+  {
+    this.AssertNotDisposed();
+
+    // TODO
+
+    // InitializeGraphicsService();
+
+    // Initialize();
+
+    // /* We need to do this after virtual Initialize(...) is called.
+    //  * 1. Categorize components into IUpdateable and IDrawable lists.
+    //  * 2. Subscribe to Added/Removed events to keep the categorized
+    //  * lists synced and to Initialize future components as they are
+    //  * added.
+    //  */
+    // updateableComponents.Clear();
+    // drawableComponents.Clear();
+    // for (int i = 0; i < Components.Count; i += 1)
+    // {
+    //   CategorizeComponent(Components[i]);
+    // }
+    // Components.ComponentAdded += OnComponentAdded;
+    // Components.ComponentRemoved += OnComponentRemoved;
+  }
+
+
+  /*public*/ /*void*/ async RunOneFrame()
+  {
+    if (!this.hasInitialized)
+    {
+      this.DoInitialize();
+      this.gameTimer = CStopwatch.StartNew();
+      this.hasInitialized = true;
+    }
+
+    this.BeginRun();
+
+    // FIXME: Not quite right..
+    await this.Tick();
+
+    this.EndRun();
+  }
+
+  /*public*/ /*void*/ async Run()
+  {
+    this.AssertNotDisposed();
+
+    if (!this.hasInitialized)
+    {
+      this.DoInitialize();
+      this.hasInitialized = true;
+    }
+
+    this.BeginRun();
+    this.gameTimer = CStopwatch.StartNew();
+
+    await FNAPlatform.RunLoop(this);
+
+    this.EndRun();
+
+    this.OnExiting(this, EventArgs.Empty);
+  }
+
+  /*public*/ /*void*/ async Tick()
+  {
+    /* NOTE: This code is very sensitive and can break very badly,
+     * even with what looks like a safe change. Be sure to test
+     * any change fully in both the fixed and variable timestep
+     * modes across multiple devices and platforms.
+     */
+
+  //RetryTick:
+
+    // Advance the accumulated elapsed time.
+    /*long*/ let currentTicks = this.gameTimer.Elapsed.Ticks;
+    this.accumulatedElapsedTime["+="](CTimeSpan.FromTicks(currentTicks - this.previousTicks));
+    this.previousTicks = currentTicks;
+
+    /* If we're in the fixed timestep mode and not enough time has elapsed
+     * to perform an update we sleep off the the remaining time to save battery
+     * life and/or release CPU time to other threads and processes.
+     */
+    if (this.IsFixedTimeStep && this.accumulatedElapsedTime["<"](this.TargetElapsedTime))
+    {
+      /*
+      int sleepTime = (
+        (int) (TargetElapsedTime - accumulatedElapsedTime).TotalMilliseconds
+      );
+      */
+      let sleepTime = (
+        this.TargetElapsedTime["-"](this.accumulatedElapsedTime).TotalMilliseconds
+      );
+
+      /* NOTE: While sleep can be inaccurate in general it is
+       * accurate enough for frame limiting purposes if some
+       * fluctuation is an acceptable result.
+       */
+      //System.Threading.Thread.Sleep(sleepTime);
+      await CThread.Sleep(sleepTime);
+
+      //goto RetryTick;
+      return await this.Tick();
+    }
+
+    // Do not allow any update to take longer than our maximum.
+    if (this.accumulatedElapsedTime[">"](CGame.MaxElapsedTime))
+    {
+      this.accumulatedElapsedTime["="](CGame.MaxElapsedTime);
+    }
+
+    if (this.IsFixedTimeStep)
+    {
+      this.gameTime.ElapsedGameTime["="](this.TargetElapsedTime);
+      /*int*/ let stepCount = 0;
+
+      // Perform as many full fixed length time steps as we can.
+      while (this.accumulatedElapsedTime[">="](this.TargetElapsedTime))
+      {
+        this.gameTime.TotalGameTime["+="](this.TargetElapsedTime);
+        this.accumulatedElapsedTime["-="](this.TargetElapsedTime);
+        stepCount += 1;
+
+        this.AssertNotDisposed();
+        await this.Update(this.gameTime);
+      }
+
+      // Every update after the first accumulates lag
+      this.updateFrameLag += CMath.Max(0, stepCount - 1);
+
+      /* If we think we are running slowly, wait
+       * until the lag clears before resetting it
+       */
+      if (this.gameTime.IsRunningSlowly)
+      {
+        if (this.updateFrameLag === 0)
+        {
+          this.gameTime.IsRunningSlowly = false;
+        }
+      }
+      else if (this.updateFrameLag >= 5)
+      {
+        /* If we lag more than 5 frames,
+         * start thinking we are running slowly.
+         */
+        this.gameTime.IsRunningSlowly = true;
+      }
+
+      /* Every time we just do one update and one draw,
+       * then we are not running slowly, so decrease the lag.
+       */
+      if (this.stepCount === 1 && this.updateFrameLag > 0)
+      {
+        this.updateFrameLag -= 1;
+      }
+
+      /* Draw needs to know the total elapsed time
+       * that occured for the fixed length updates.
+       */
+      this.gameTime.ElapsedGameTime["="](CTimeSpan.FromTicks(this.TargetElapsedTime.Ticks * stepCount));
+    }
+    else
+    {
+      // Perform a single variable length update.
+      if (this.forceElapsedTimeToZero)
+      {
+        /* When ResetElapsedTime is called,
+         * Elapsed is forced to zero and
+         * Total is ignored entirely.
+         * -flibit
+         */
+        this.gameTime.ElapsedGameTime["="](CTimeSpan.Zero);
+        this.forceElapsedTimeToZero = false;
+      }
+      else
+      {
+        this.gameTime.ElapsedGameTime["="](this.accumulatedElapsedTime);
+        this.gameTime.TotalGameTime["+="](this.gameTime.ElapsedGameTime);
+      }
+
+      this.accumulatedElapsedTime["="](CTimeSpan.Zero);
+      this.AssertNotDisposed();
+      await this.Update(this.gameTime);
+    }
+
+    // Draw unless the update suppressed it.
+    if (this.suppressDraw)
+    {
+      this.suppressDraw = false;
+    }
+    else
+    {
+      /* Draw/EndDraw should not be called if BeginDraw returns false.
+       * http://stackoverflow.com/questions/4054936/manual-control-over-when-to-redraw-the-screen/4057180#4057180
+       * http://stackoverflow.com/questions/4235439/xna-3-1-to-4-0-requires-constant-redraw-or-will-display-a-purple-screen
+       */
+      if (await this.BeginDraw())
+      {
+        await this.Draw(this.gameTime);
+        await this.EndDraw();
+      }
+    }
   }
 };

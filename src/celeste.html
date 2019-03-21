@@ -118,8 +118,10 @@ void main() {
   </script>
   <script src="./twgl-full.js"></script>
   <script src="./chroma.js"></script>
+  <script src="./DotNet.js"></script>
   <script src="./Xna.js"></script>
   <script src="./Monocle/Engine.js"></script>
+  <script src="./Celeste/Celeste.js"></script>
   <script>
     "use strict";
     twgl.setDefaults({attribPrefix: "a_"});
@@ -321,6 +323,7 @@ function createAnims(baseOpts, opts) {
       */
     }),
     (errs, textures, images) => {
+      window.celeste = new CCeleste();
       window.images = images;
       window.textures = textures;
 
