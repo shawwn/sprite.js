@@ -142,7 +142,11 @@ void main() {
       xOffset = xOffset || 0;
       yOffset = yOffset || 0;
       size *= 0.5;
-      return [xOffset + -1 * size, yOffset + -1 * size, xOffset + 1 * size, yOffset + -1 * size, xOffset + -1 * size, yOffset + 1 * size, xOffset + 1 * size, yOffset + 1 * size];
+      return [
+        xOffset + -1 * size, yOffset + -1 * size,
+        xOffset +  1 * size, yOffset + -1 * size,
+        xOffset + -1 * size, yOffset +  1 * size,
+        xOffset +  1 * size, yOffset +  1 * size];
     }
 
     function createXYQuadVertices(size, xOffset, yOffset) {

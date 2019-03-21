@@ -5098,6 +5098,115 @@ ESpriteSortMode = {
   FrontToBack: 4
 }
 
+/// <summary>
+/// A usage hint for optimizing memory placement of graphics buffers.
+/// </summary>
+/*public*/ /*enum*/ EBufferUsage = {
+  /// <summary>
+  /// No special usage.
+  /// </summary>
+  None: 0,
+  /// <summary>
+  /// The buffer will not be readable and will be optimized for rendering and writing.
+  /// </summary>
+  WriteOnly: 1,
+}
+
+CIndexBuffer = class CIndexBuffer {
+  /*protected*/ /*IndexBuffer*/ constructor(
+    /*GraphicsDevice*/ graphicsDevice,
+    /*IndexElementSize*/ indexElementSize,
+    /*int*/ indexCount,
+    /*BufferUsage*/ usage,
+    /*bool*/ dynamic
+  ) {
+    if (graphicsDevice == null)
+    {
+      throw new CArgumentNullException("graphicsDevice");
+    }
+
+    this.GraphicsDevice = graphicsDevice;
+    this.IndexElementSize = indexElementSize;
+    this.IndexCount = indexCount;
+    this.BufferUsage = usage;
+
+    this.buffer = this.GraphicsDevice.GLDevice.GenIndexBuffer(
+      dynamic,
+      this.IndexCount,
+      this.IndexElementSize
+    );
+  }
+
+  /*
+  public void SetData<T>(
+    T[] data,
+    int startIndex,
+    int elementCount
+  ) where T : struct {
+    ErrorCheck(data, startIndex, elementCount);
+
+    GCHandle handle = GCHandle.Alloc(data, GCHandleType.Pinned);
+    GraphicsDevice.GLDevice.SetIndexBufferData(
+      buffer,
+      0,
+      handle.AddrOfPinnedObject() + (startIndex * Marshal.SizeOf(typeof(T))),
+      elementCount * Marshal.SizeOf(typeof(T)),
+      SetDataOptions.None
+    );
+    handle.Free();
+  }
+  */
+
+  SetData(data, startIndex, elementCount) {
+    let elemSize = XNAToGL.IndexSize[_int(this.IndexElementSize)];
+    this.GraphicsDevice.GLDevice.SetIndexBufferData(
+      this.buffer, 
+      /*(IntPtr)*/ (startIndex * elemSize),
+      data,
+      elemSize * elementCount,
+      ESetDataOptions.Discard)
+  }
+};
+
+CVertexPositionColorTexture4 = class CVertexPositionColorTexture4
+{
+  //public const int RealStride = 96;
+  get RealStride() { return 96; }
+  static get RealStride() { return 96; }
+
+  /*
+  VertexDeclaration IVertexType.VertexDeclaration
+  {
+    get
+    {
+      throw new NotImplementedException();
+    }
+  }
+  */
+
+  constructor(buffer, offset) {
+    this.Buffer = buffer;
+    this.Offset = offset;
+  }
+
+  get ByteOffset() {
+    return this.RealStride * this.Offset;
+  }
+
+  get Position0()          { return new Float32Array(this.Buffer, this.ByteOffset + 0*(3*4 + 4 + 2*4), 3); }
+  get Color0()             { return new Uint8Array  (this.Buffer, this.ByteOffset + 0*(3*4 + 4 + 2*4) + 3*4, 4); }
+  get TextureCoordinate0() { return new Float32Array(this.Buffer, this.ByteOffset + 0*(3*4 + 4 + 2*4) + 3*4 + 4, 2); }
+  get Position1()          { return new Float32Array(this.Buffer, this.ByteOffset + 1*(3*4 + 4 + 2*4), 3); }
+  get Color1()             { return new Uint8Array  (this.Buffer, this.ByteOffset + 1*(3*4 + 4 + 2*4) + 3*4, 4); }
+  get TextureCoordinate1() { return new Float32Array(this.Buffer, this.ByteOffset + 1*(3*4 + 4 + 2*4) + 3*4 + 4, 2); }
+  get Position2()          { return new Float32Array(this.Buffer, this.ByteOffset + 2*(3*4 + 4 + 2*4), 3); }
+  get Color2()             { return new Uint8Array  (this.Buffer, this.ByteOffset + 2*(3*4 + 4 + 2*4) + 3*4, 4); }
+  get TextureCoordinate2() { return new Float32Array(this.Buffer, this.ByteOffset + 2*(3*4 + 4 + 2*4) + 3*4 + 4, 2); }
+  get Position3()          { return new Float32Array(this.Buffer, this.ByteOffset + 3*(3*4 + 4 + 2*4), 3); }
+  get Color3()             { return new Uint8Array  (this.Buffer, this.ByteOffset + 3*(3*4 + 4 + 2*4) + 3*4, 4); }
+  get TextureCoordinate3() { return new Float32Array(this.Buffer, this.ByteOffset + 3*(3*4 + 4 + 2*4) + 3*4 + 4, 2); }
+}
+
 
 CSpriteBatch = class CSpriteBatch {
 
@@ -5116,9 +5225,11 @@ CSpriteBatch = class CSpriteBatch {
     //   throw new CArgumentNullException("graphicsDevice");
     // }
     this.GraphicsDevice = graphicsDevice;
+    this.sortMode = ESpriteSortMode.Immediate;
 
 //     this.vertexInfo = new VertexPositionColorTexture4[MAX_SPRITES];
 //     this.textureInfo = new Texture2D[MAX_SPRITES];
+     this.textureInfo = new Array(CSpriteBatch.MAX_SPRITES);
 //     this.spriteInfos = new SpriteInfo[MAX_SPRITES];
 //     this.sortedSpriteInfos = new IntPtr[MAX_SPRITES];
 //     this.vertexBuffer = new DynamicVertexBuffer(
@@ -5127,13 +5238,13 @@ CSpriteBatch = class CSpriteBatch {
 //       MAX_VERTICES,
 //       BufferUsage.WriteOnly
 //     );
-//     this.indexBuffer = new IndexBuffer(
-//       graphicsDevice,
-//       EIndexElementSize.SixteenBits,
-//       MAX_INDICES,
-//       BufferUsage.WriteOnly
-//     );
-//     indexBuffer.SetData(indexData);
+    this.indexBuffer = new CIndexBuffer(
+      graphicsDevice,
+      EIndexElementSize.SixteenBits,
+      CSpriteBatch.MAX_INDICES,
+      EBufferUsage.WriteOnly
+    );
+    this.indexBuffer.SetData(this.indexData);
 
 //     this.spriteEffect = new Effect(
 //       graphicsDevice,
@@ -5144,6 +5255,44 @@ CSpriteBatch = class CSpriteBatch {
 
     this.beginCalled = false;
     this.numSprites = 0;
+  }
+
+  /*
+  private static short[] GenerateIndexArray()
+  {
+    short[] result = new short[MAX_INDICES];
+    for (int i = 0, j = 0; i < MAX_INDICES; i += 6, j += 4)
+    {
+      result[i] = (short) (j);
+      result[i + 1] = (short) (j + 1);
+      result[i + 2] = (short) (j + 2);
+      result[i + 3] = (short) (j + 3);
+      result[i + 4] = (short) (j + 2);
+      result[i + 5] = (short) (j + 1);
+    }
+    return result;
+  }
+  */
+  static GenerateIndexArray()
+  {
+    let result = new Uint16Array(CSpriteBatch.MAX_INDICES);
+    for (let i = 0, j = 0; i < CSpriteBatch.MAX_INDICES; i += 6, j += 4)
+    {
+      result[i] = (j);
+      result[i + 1] = (j + 1);
+      result[i + 2] = (j + 2);
+      result[i + 3] = (j + 3);
+      result[i + 4] = (j + 2);
+      result[i + 5] = (j + 1);
+    }
+    return result;
+  }
+
+  get indexData() {
+    if (this.INTERNAL_indexData == null) {
+      this.INTERNAL_indexData = CSpriteBatch.GenerateIndexArray();
+    }
+    return this.INTERNAL_indexData;
   }
 
 
@@ -5236,7 +5385,7 @@ CSpriteBatch = class CSpriteBatch {
       {
         let sprite = this.vertexInfo;
         this.GenerateVertexInfo(
-          sprite,
+          sprite, 0,
           sourceX,
           sourceY,
           sourceW,
@@ -5265,7 +5414,7 @@ CSpriteBatch = class CSpriteBatch {
         this.vertexBuffer.SetDataPointerEXT(
           0,
           /*(IntPtr)*/ sprite,
-          VertexPositionColorTexture4.RealStride,
+          CVertexPositionColorTexture4.RealStride,
           ESetDataOptions.None
         );
       }
@@ -5275,9 +5424,9 @@ CSpriteBatch = class CSpriteBatch {
     {
       //fixed (VertexPositionColorTexture4* sprite = &vertexInfo[numSprites])
       {
-        let sprite = this.vertexInfo[this.numSprites];
+        let sprite = this.vertexInfo;
         this.GenerateVertexInfo(
-          sprite,
+          sprite, this.numSprites,
           sourceX,
           sourceY,
           sourceW,
@@ -5296,8 +5445,8 @@ CSpriteBatch = class CSpriteBatch {
         );
       }
 
-      textureInfo[numSprites] = texture;
-      numSprites += 1;
+      this.textureInfo[numSprites] = texture;
+      this.numSprites += 1;
     }
     else
     {
@@ -5322,8 +5471,8 @@ CSpriteBatch = class CSpriteBatch {
         spriteInfo.effects = effects;
       }
 
-      textureInfo[numSprites] = texture;
-      numSprites += 1;
+      this.textureInfo[numSprites] = texture;
+      this.numSprites += 1;
     }
   }
 
@@ -5366,13 +5515,13 @@ CSpriteBatch = class CSpriteBatch {
             let sprites = this.vertexInfo;
             for (/*int*/ let i = 0; i < this.numSprites; i += 1)
             {
-              sortedSpriteInfo[i] = spriteInfo[i]; //(IntPtr) (&spriteInfo[i]);
+              this.sortedSpriteInfo[i] = this.spriteInfo[i]; //(IntPtr) (&spriteInfo[i]);
             }
             CArray.Sort(
-              sortedSpriteInfos,
-              textureInfo,
+              this.sortedSpriteInfos,
+              this.textureInfo,
               0,
-              numSprites,
+              this.numSprites,
               comparer
             );
             for (/*int*/ let i = 0; i < this.numSprites; i += 1)
@@ -5380,7 +5529,7 @@ CSpriteBatch = class CSpriteBatch {
               //SpriteInfo* info = (SpriteInfo*) sortedSpriteInfo[i];
               let info = this.sortedSpriteInfo[i];
               this.GenerateVertexInfo(
-                sprites[i],
+                sprites, i,
                 info.sourceX,
                 info.sourceY,
                 info.sourceW,
@@ -5415,21 +5564,21 @@ CSpriteBatch = class CSpriteBatch {
        * that's your own fault. Use the whole buffer!
        * -flibit
        */
-      vertexBuffer.SetDataPointerEXT(
+      this.vertexBuffer.SetDataPointerEXT(
         0,
         /*(IntPtr)*/ p,
-        numSprites * VertexPositionColorTexture4.RealStride,
+        numSprites * CVertexPositionColorTexture4.RealStride,
         ESetDataOptions.Discard
       );
     }
 
-    curTexture = textureInfo[0];
-    for (/*int*/ let i = 1; i < numSprites; i += 1)
+    curTexture = this.textureInfo[0];
+    for (/*int*/ let i = 1; i < this.numSprites; i += 1)
     {
-      if (textureInfo[i] != curTexture)
+      if (this.textureInfo[i] !== curTexture)
       {
         this.DrawPrimitives(curTexture, offset, i - offset);
-        curTexture = textureInfo[i];
+        curTexture = this.textureInfo[i];
         offset = i;
       }
     }
