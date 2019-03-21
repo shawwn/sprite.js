@@ -243,6 +243,91 @@ function createAnims(baseOpts, opts) {
   return r;
 }
 
+  function update(time) {
+    time *= 0.001;
+
+    const radius = 20;
+    const orbitSpeed = time * 0.1;
+    const projection = m4.perspective(30 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.5, 100);
+    const eye = [Math.cos(orbitSpeed) * radius, 4, Math.sin(orbitSpeed) * radius];
+    const target = [0, 0, 0];
+    const up = [0, 1, 0];
+
+    m4.lookAt(eye, target, up, camera);
+    m4.inverse(camera, view);
+    m4.multiply(projection, view, viewProjection);
+
+    updateCanvas(time);
+    twgl.setTextureFromElement(gl, textures.fromCanvas, ctx.canvas);
+
+    window.objects.forEach(function(obj) {
+      const uni = obj.uniforms;
+      const world = uni.u_world;
+      m4.identity(world);
+      m4.rotateY(world, time * obj.ySpeed, world);
+      m4.rotateZ(world, time * obj.zSpeed, world);
+      m4.translate(world, obj.translation, world);
+      m4.rotateX(world, time, world);
+      m4.transpose(m4.inverse(world, uni.u_worldInverseTranspose), uni.u_worldInverseTranspose);
+      m4.multiply(viewProjection, uni.u_world, uni.u_worldViewProjection);
+    });
+  }
+
+  function render() {
+    twgl.resizeCanvasToDisplaySize(gl.canvas);
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.enable(gl.DEPTH_TEST);
+    const BLEND=false;
+    if (BLEND) {
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    } else {
+      gl.disable(gl.BLEND);
+    }
+    gl.clearColor(0,0,0,0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    twgl.setTextureFromElement(gl, textures.fromCanvas, ctx.canvas);
+
+    twgl.drawObjectList(gl, window.drawObjects);
+  }
+
+function randi(n) {
+  return Math.floor(Math.random()*n);
+}
+
+
+CCeleste = class CCeleste extends CEngine {
+  constructor() {
+    super();
+    this.FrameCount = 0;
+    this.UpdateCount = 0;
+    this.FPS = 0;
+    this.FPSTicks = CTimeSpan.Zero;
+  }
+
+  async Update(gameTime) {
+    await super.Update(gameTime);
+    update(gameTime.TotalGameTime.TotalMilliseconds);
+    this.UpdateCount += 1;
+    this.FPSTicks["+="](gameTime.ElapsedGameTime);
+    if (this.FPSTicks.TotalSeconds > 1.0) {
+      console.log(`FPS: draw(${this.FrameCount}) update(${this.UpdateCount})`);
+      this.FrameCount = 0;
+      this.UpdateCount = 0;
+      this.FPSTicks = CTimeSpan.Zero;
+    }
+  }
+
+  async Draw() {
+    await CThread.Sleep(randi(100));
+    this.FrameCount += 1;
+    await super.Draw();
+    render();
+  }
+};
+
   twgl.createTextures(gl, createAnims({min: gl.LINEAR, mag: gl.NEAREST},
   {
       // a power of 2 image
@@ -322,8 +407,7 @@ function createAnims(baseOpts, opts) {
       cubemapFrom6Canvases: { target: gl.TEXTURE_CUBE_MAP, src: cubeFaceCanvases },
       */
     }),
-    (errs, textures, images) => {
-      window.celeste = new CCeleste();
+    async (errs, textures, images) => {
       window.images = images;
       window.textures = textures;
 
@@ -348,9 +432,9 @@ function createAnims(baseOpts, opts) {
         textures.cubemapFromArray,
       ];
 
-      const objects = [];
-      const drawObjects = [];
-      const numObjects = 100;
+      window.objects = [];
+      window.drawObjects = [];
+      window.numObjects = 100;
       for (let ii = 0; ii < numObjects; ++ii) {
         let uniforms;
         let programInfo;
@@ -397,53 +481,8 @@ function createAnims(baseOpts, opts) {
           uniforms: uniforms,
         });
       }
-
-      function render(time) {
-        time *= 0.001;
-        twgl.resizeCanvasToDisplaySize(gl.canvas);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-        gl.enable(gl.DEPTH_TEST);
-        const BLEND=false;
-        if (BLEND) {
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        } else {
-          gl.disable(gl.BLEND);
-        }
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        const radius = 20;
-        const orbitSpeed = time * 0.1;
-        const projection = m4.perspective(30 * Math.PI / 180, gl.canvas.clientWidth / gl.canvas.clientHeight, 0.5, 100);
-        const eye = [Math.cos(orbitSpeed) * radius, 4, Math.sin(orbitSpeed) * radius];
-        const target = [0, 0, 0];
-        const up = [0, 1, 0];
-
-        m4.lookAt(eye, target, up, camera);
-        m4.inverse(camera, view);
-        m4.multiply(projection, view, viewProjection);
-
-        updateCanvas(time);
-        twgl.setTextureFromElement(gl, textures.fromCanvas, ctx.canvas);
-
-        objects.forEach(function(obj) {
-          const uni = obj.uniforms;
-          const world = uni.u_world;
-          m4.identity(world);
-          m4.rotateY(world, time * obj.ySpeed, world);
-          m4.rotateZ(world, time * obj.zSpeed, world);
-          m4.translate(world, obj.translation, world);
-          m4.rotateX(world, time, world);
-          m4.transpose(m4.inverse(world, uni.u_worldInverseTranspose), uni.u_worldInverseTranspose);
-          m4.multiply(viewProjection, uni.u_world, uni.u_worldViewProjection);
-        });
-
-        twgl.drawObjectList(gl, drawObjects);
-
-        requestAnimationFrame(render);
-      }
-      requestAnimationFrame(render);
+      window.celeste = new CCeleste();
+      await window.celeste.Run();
     },
     );
 
