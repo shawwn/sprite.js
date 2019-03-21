@@ -306,6 +306,81 @@ CCeleste = class CCeleste extends CEngine {
     this.FPS = 0;
     this.FPSTicks = CTimeSpan.Zero;
   }
+  LoadContent() {
+    super.LoadContent();
+    // This is soley to make it easy to pick textures at random
+    const twoDTextures = [
+      textures.checker,
+      textures.stripe,
+      //textures.hftIcon,
+      //textures.fromCanvas,
+    ];
+    window.twoDTextures = twoDTextures;
+    for (let anim of ['idle', 'idleA', 'idleB', 'idleC']) {
+      for (let i = 0; textures[framer(anim, i)] != null; i++) {
+        twoDTextures.push(textures[framer(anim, i)]);
+        twoDTextures.push(CDraw.Pixel.Texture.Texture.Handle);
+      }
+    }
+
+    const cubeTextures = [
+      //textures.yokohama,
+      //textures.goldengate,
+      //textures.cubemapFromCanvas,
+      //textures.cubemapFrom6Canvases,
+      textures.cubemapFromArray,
+    ];
+
+    window.objects = [];
+    window.drawObjects = [];
+    window.numObjects = 100;
+    for (let ii = 0; ii < numObjects; ++ii) {
+      let uniforms;
+      let programInfo;
+      let shape;
+      //const renderType = rand(0, 2) | 0;
+      const renderType = 0;
+      switch (renderType) {
+        case 0:  // checker
+          shape = shapes[shapeID[ii % shapeID.length]];
+          programInfo = onePointProgramInfo;
+          uniforms = {
+            //u_diffuseMult: chroma.hsv((baseHue + rand(0, 60)) % 360, 0.4, 0.8).gl(),
+            u_diffuseMult: chroma.rgb(255,255,255).gl(),
+            u_diffuse: twoDTextures[rand(0, twoDTextures.length) | 0],
+            u_viewInverse: camera,
+            u_world: m4.identity(),
+            u_worldInverseTranspose: m4.identity(),
+            u_worldViewProjection: m4.identity(),
+          };
+          break;
+        case 1:  // yokohama
+          shape = rand(0, 2) < 1 ? shapes[1] : shapes[3];
+          programInfo = envMapProgramInfo;
+          uniforms = {
+            u_texture: cubeTextures[rand(0, cubeTextures.length) | 0],
+            u_viewInverse: camera,
+            u_world: m4.identity(),
+            u_worldInverseTranspose: m4.identity(),
+            u_worldViewProjection: m4.identity(),
+          };
+          break;
+        default:
+          throw "wAT!";
+      }
+      drawObjects.push({
+        programInfo: programInfo,
+        bufferInfo: shape,
+        uniforms: uniforms,
+      });
+      objects.push({
+        translation: [rand(-10, 10), rand(-10, 10), rand(-10, 10)],
+        ySpeed: rand(0.1, 0.3),
+        zSpeed: rand(0.1, 0.3),
+        uniforms: uniforms,
+      });
+    }
+  }
 
   async Update(gameTime) {
     await super.Update(gameTime);
@@ -411,77 +486,6 @@ CCeleste = class CCeleste extends CEngine {
     async (errs, textures, images) => {
       window.images = images;
       window.textures = textures;
-
-      // This is soley to make it easy to pick textures at random
-      const twoDTextures = [
-        textures.checker,
-        textures.stripe,
-        //textures.hftIcon,
-        //textures.fromCanvas,
-      ];
-      for (let anim of ['idle', 'idleA', 'idleB', 'idleC']) {
-        for (let i = 0; textures[framer(anim, i)] != null; i++) {
-          twoDTextures.push(textures[framer(anim, i)]);
-        }
-      }
-
-      const cubeTextures = [
-        //textures.yokohama,
-        //textures.goldengate,
-        //textures.cubemapFromCanvas,
-        //textures.cubemapFrom6Canvases,
-        textures.cubemapFromArray,
-      ];
-
-      window.objects = [];
-      window.drawObjects = [];
-      window.numObjects = 100;
-      for (let ii = 0; ii < numObjects; ++ii) {
-        let uniforms;
-        let programInfo;
-        let shape;
-        //const renderType = rand(0, 2) | 0;
-        const renderType = 0;
-        switch (renderType) {
-          case 0:  // checker
-            shape = shapes[shapeID[ii % shapeID.length]];
-            programInfo = onePointProgramInfo;
-            uniforms = {
-              //u_diffuseMult: chroma.hsv((baseHue + rand(0, 60)) % 360, 0.4, 0.8).gl(),
-              u_diffuseMult: chroma.rgb(255,255,255).gl(),
-              u_diffuse: twoDTextures[rand(0, twoDTextures.length) | 0],
-              u_viewInverse: camera,
-              u_world: m4.identity(),
-              u_worldInverseTranspose: m4.identity(),
-              u_worldViewProjection: m4.identity(),
-            };
-            break;
-          case 1:  // yokohama
-            shape = rand(0, 2) < 1 ? shapes[1] : shapes[3];
-            programInfo = envMapProgramInfo;
-            uniforms = {
-              u_texture: cubeTextures[rand(0, cubeTextures.length) | 0],
-              u_viewInverse: camera,
-              u_world: m4.identity(),
-              u_worldInverseTranspose: m4.identity(),
-              u_worldViewProjection: m4.identity(),
-            };
-            break;
-          default:
-            throw "wAT!";
-        }
-        drawObjects.push({
-          programInfo: programInfo,
-          bufferInfo: shape,
-          uniforms: uniforms,
-        });
-        objects.push({
-          translation: [rand(-10, 10), rand(-10, 10), rand(-10, 10)],
-          ySpeed: rand(0.1, 0.3),
-          zSpeed: rand(0.1, 0.3),
-          uniforms: uniforms,
-        });
-      }
       window.celeste = new CCeleste();
       await window.celeste.Run();
     },

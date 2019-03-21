@@ -581,6 +581,18 @@ CRectangle = class CRectangle {
     this.Height = height;
   }
 
+  Clone(dst = new CRectangle()) {
+    return dst.Assign(this);
+  }
+
+  Assign(value) {
+    this.X = value.X;
+    this.Y = value.Y;
+    this.Width = value.Width;
+    this.Height = value.Height;
+    return this;
+  }
+
   /// <summary>
   /// Returns the x coordinate of the left edge of this <see cref="Rectangle"/>.
   /// </summary>
@@ -3519,7 +3531,6 @@ COpenGLDevice = class COpenGLDevice {
   {
     this.PresentationParameters = presentationParameters;
     this.Adapter = adapter;
-    this.gl = this.PresentationParameters.DeviceWindowHandle.getContext("webgl");
 
     // Initialize the faux-backbuffer
     if (this.UseFauxBackbuffer(presentationParameters, adapter.CurrentDisplayMode))
@@ -3547,6 +3558,12 @@ COpenGLDevice = class COpenGLDevice {
         this.windowDepthFormat
       );
     }
+  }
+
+  get gl() {
+    if (this.INTERNAL_gl == null)
+      this.INTERNAL_gl = this.PresentationParameters.DeviceWindowHandle.getContext("webgl");
+    return this.INTERNAL_gl;
   }
 
   UseFauxBackbuffer(pp, dm) {
@@ -4556,6 +4573,11 @@ CGraphicsDevice = class CGraphicsDevice {
     }
   }
 
+
+  Present()
+  {
+    // TODO
+  }
 };
 
 CPreparingDeviceSettingsEventArgs = class CPreparingDeviceSettingsEventArgs {

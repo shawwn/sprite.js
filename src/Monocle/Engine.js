@@ -327,7 +327,179 @@ CTracker = class CTracker {
   }
 };
 
+CVirtualAsset = /*abstract*/ class CVirtualAsset {
+  //string Name { get; internal set; }
+
+  //int Width { get; internal set; }
+
+  //int Height { get; internal set; }
+
+  constructor()
+  {
+    this.Name = "";
+    this.Width = 0;
+    this.Height = 0;
+  }
+
+  /*internal*/ /*virtual*/ /*void*/ Unload()
+  {
+  }
+
+  /*internal*/ /*virtual*/ /*void*/ Reload()
+  {
+  }
+
+  /*virtual*/ /*void*/ Dispose()
+  {
+  }
+}
+
+function _gl(graphicsDevice) {
+  return graphicsDevice.GLDevice.gl;
+}
+
+
+CGraphicsResource = class CGraphicsResource {
+};
+
+CTexture = class CTexture extends CGraphicsResource {
+};
+
+CTexture2D = class CTexture2D extends CTexture {
+  constructor(graphicsDevice, width, height) {
+    super();
+    this.GraphicsDevice = graphicsDevice;
+    this.Width = width;
+    this.Height = height;
+    this.Handle = null;
+  }
+
+  get gl() { return _gl(this.GraphicsDevice); }
+
+  Unload()
+  {
+    if (this.Handle != null)
+    {
+      this.gl.deleteTexture(this.Handle);
+    }
+    this.Handle = null;
+  }
+
+  SetData(data)
+  {
+    this.Unload();
+    this.Handle = twgl.createTexture(this.gl, {
+      src: data
+    });
+  }
+};
+
+CVirtualTexture = class CVirtualTexture extends CVirtualAsset {
+  constructor(...args)
+  {
+    switch (args.length) {
+      case 1: { super(); this.CVirtualTexture1(...args); } break;
+      case 4: { super(); this.CVirtualTexture4(...args); } break;
+      default: throw new CArgumentException("Invalid argument count.");
+    }
+  }
+  CVirtualTexture1(/*string*/ path)
+  {
+    this.Name = this.Path = path;
+    this.Reload();
+  }
+  CVirtualTexture4(/*string*/ name, /*int*/ width, /*int*/ height, /*Color*/ color)
+  {
+    this.Name = name;
+    this.Width = width;
+    this.Height = height;
+    this.Color = color;
+    this.Reload();
+  }
+
+  /*internal*/ /*override*/ /*void*/ Unload()
+  {
+    if (this.Texture != null && !this.Texture.IsDisposed)
+      this.Texture.Dispose();
+    this.Texture = /*(Texture2D)*/ null;
+  }
+
+  /*internal*/ /*override*/ /*unsafe*/ /*void*/ Reload()
+  {
+    this.Unload();
+    if (Cstring.IsNullOrEmpty(this.Path))
+    {
+      this.Texture = new CTexture2D(CEngine.Instance.GraphicsDevice, this.Width, this.Height);
+      /* TODO
+      Color[] data = new Color[this.Width * this.Height];
+      fixed (Color* colorPtr = data)
+      {
+        for (int index = 0; index < data.Length; ++index)
+          colorPtr[index] = this.color;
+      }
+      this.Texture.SetData<Color>(data);
+      */
+      let data = createAugmentedTypedArray(4, this.Width * this.Height, Uint8Array);
+      for (let index = 0; index < data.length; index += 4)
+      {
+        data[index + 0] = this.Color.R * 255
+        data[index + 1] = this.Color.G * 255
+        data[index + 2] = this.Color.B * 255
+        data[index + 3] = this.Color.A * 255
+      }
+      this.Texture.SetData(data);
+    }
+    else
+    {
+      throw new CNotImplementedException();
+    }
+  }
+};
+
 CVirtualContent = class CVirtualContent {
+
+  //private static List<VirtualAsset> assets = new List<VirtualAsset>();
+  static get assets()
+  {
+    if (CVirtualContent.INTERNAL_assets == null)
+      CVirtualContent.INTERNAL_assets = new CList();
+    return CVirtualContent.INTERNAL_assets;
+  }
+
+  //private static bool reloading;
+
+  /*public*/ static /*int*/ get Count()
+  {
+    return CVirtualContent.assets.Count;
+  }
+
+  static CreateTexture(...args)
+  {
+    switch(args.length) {
+      case 1: return CVirtualContent.CreateTexture1(...args); break;
+      case 4: return CVirtualContent.CreateTexture4(...args); break;
+      default: throw new CArgumentException("Invalid argument count");
+    }
+  }
+
+  /*public*/ static /*VirtualTexture*/ CreateTexture1(/*string*/ path)
+  {
+    /*VirtualTexture*/ let virtualTexture = new CVirtualTexture(path);
+    CVirtualContent.assets.Add(/*(VirtualAsset)*/ virtualTexture);
+    return virtualTexture;
+  }
+
+  /*public*/ static /*VirtualTexture*/ CreateTexture4(
+    /*string*/ name,
+    /*int*/ width,
+    /*int*/ height,
+    /*Color*/ color)
+  {
+    /*VirtualTexture*/ let virtualTexture = new CVirtualTexture(name, width, height, color);
+    CVirtualContent.assets.Add(/*(VirtualAsset)*/ virtualTexture);
+    return virtualTexture;
+  }
+
   static Reload() {
   }
 };
@@ -343,6 +515,10 @@ CEngine = class CEngine extends CGame {
     super(nativeWindow, display);
 
     CEngine.Instance = this;
+  }
+
+  get GraphicsDevice() {
+    return CEngine.Graphics.GraphicsDevice;
   }
 
   static get Instance() {
@@ -583,6 +759,56 @@ CEnumerable = class CEnumerable {
   }
 };
 
+CList = class CList extends CEnumerable {
+  constructor()
+  {
+    super([]);
+  }
+
+  At(i)
+  {
+    return this._value[i];
+  }
+
+  get Count()
+  {
+    return FLength(this._value);
+  }
+
+  Clear()
+  {
+    while (this.Count > 0)
+      this._Pop();
+  }
+
+  Contains(item)
+  {
+    return this._value.indexOf(item) >= 0;
+  }
+
+  _Pop()
+  {
+    if (this.Count == 0)
+      this.ThrowForEmptyList();
+    return this._value.pop();
+  }
+
+  Add(item)
+  {
+    this._value.push(item);
+  }
+
+  ToArray()
+  {
+    return [...this._value];
+  }
+
+  _ThrowForEmptyList()
+  {
+    throw new CInvalidOperationException("List empty.");
+  }
+};
+
 CStack = class CStack extends CEnumerable {
   constructor()
   {
@@ -790,6 +1016,88 @@ CGraphicsComponent = class GraphicsComponent extends CComponent {
   }
 }
 
+CMTexture = class CMTexture {
+  constructor(...args)
+  {
+    switch (args.length) {
+      case 1: { this.CMTexture1(...args); } break;
+      case 5: { this.CMTexture5(...args); } break;
+      case 2: { this.CMTexture2(...args); } break;
+      default: throw new CArgumentException("Invalid argument count.");
+    }
+  }
+
+  CMTexture1(/*VirtualTexture*/ texture)
+  {
+    this.Texture = texture;
+    this.AtlasPath = /*(string)*/null;
+    this.ClipRect = new CRectangle(0, 0, this.Texture.Width, this.Texture.Height);
+    this.DrawOffset = CVector2.Zero;
+    this.Width = this.ClipRect.Width;
+    this.Height = this.ClipRect.Height;
+    this.SetUtil();
+  }
+
+  CMTexture5(/*VirtualTexture*/ parent, /*int*/ x, /*int*/ y, /*int*/ width, /*int*/ height)
+  {
+    this.Texture = parent.Texture;
+    this.AtlasPath = /*(string)*/null;
+    this.ClipRect = parent.GetRelativeRect(x, y, width, height);
+    this.DrawOffset = new CVector2(-CMath.Min(/*(float)*/x - parent.DrawOffset.X, 0.0), -CMath.Min(/*(float)*/y - parent.DrawOffset.Y, 0.0));
+    this.Width = width;
+    this.Height = height;
+    this.SetUtil();
+  }
+
+  CMTexture2(/*VirtualTexture*/ parent, /*Rectangle*/ clipRect)
+  {
+    this.CMTexture5(parent, clipRect.X, clipRect.Y, clipRect.Width, clipRect.Height);
+  }
+
+  SetUtil()
+  {
+    this.Center = new CVector2(0.5 * /*(float)*/ this.Width, 0.5 * /*(float)*/ this.Height);
+    this.LeftUV = /*(float)*/ this.ClipRect.Left / /*(float)*/ this.Texture.Width;
+    this.RightUV = /*(float)*/ this.ClipRect.Right / /*(float)*/ this.Texture.Width;
+    this.TopUV = /*(float)*/ this.ClipRect.Top / /*(float)*/ this.Texture.Height;
+    this.BottomUV = /*(float)*/ this.ClipRect.Bottom / /*(float)*/ this.Texture.Height;
+  }
+
+  GetRelativeRect(...args)
+  {
+    switch (args.length) {
+      case 1: { return this.GetRelativeRect1(...args); } break;
+      case 4: { return this.GetRelativeRect4(...args); } break;
+      default: throw new CArgumentException("Invalid argument count.");
+    }
+  }
+
+  /*public*/ /*Rectangle*/ GetRelativeRect1(/*Rectangle*/ rect)
+  {
+    return this.GetRelativeRect4(rect.X, rect.Y, rect.Width, rect.height);
+  }
+
+  /*public*/ /*Rectangle*/ GetRelativeRect4(/*int*/ x, /*int*/ y, /*int*/ width, /*int*/ height)
+  {
+    /*int*/ let num1 = _int(/*(double)*/ this.ClipRect.X - /*(double)*/ this.DrawOffset.X + /*(double)*/ x);
+    /*int*/ let num2 = _int(/*(double)*/ this.ClipRect.Y - /*(double)*/ this.DrawOffset.Y + /*(double)*/ y);
+    /*double*/ let num3 = /*(double)*/ num1;
+    /*Rectangle*/ let clipRect1 = this.ClipRect.Clone();
+    /*double*/ let left = /*(double)*/ clipRect1.Left;
+    clipRect1 = this.ClipRect;
+    /*double*/ let right = /*(double)*/ clipRect1.Right;
+    /*int*/ let x1 = _int(CMathHelper.Clamp(/*(float)*/ num3, /*(float)*/ left, /*(float)*/ right));
+    /*double*/ let num4 = /*(double)*/ num2;
+    /*Rectangle*/ let clipRect2 = this.ClipRect.Clone();
+    /*double*/ let top = /*(double)*/ clipRect2.Top;
+    clipRect2 = this.ClipRect;
+    /*double*/ let bottom = /*(double)*/ clipRect2.Bottom;
+    /*int*/ let y1 = _int(CMathHelper.Clamp(/*(float)*/ num4, /*(float)*/ top, /*(float)*/ bottom));
+    /*int*/ let width1 = CMath.Max(0, CMath.Min(num1 + width, this.ClipRect.Right) - x1);
+    /*int*/ let height1 = CMath.Max(0, CMath.Min(num2 + height, this.ClipRect.Bottom) - y1);
+    return new CRectangle(x1, y1, width1, height1);
+  }
+};
 
 CImage = class CImage extends CGraphicsComponent {
   constructor(/*MTexture*/ texture) {
@@ -835,33 +1143,6 @@ CImage = class CImage extends CGraphicsComponent {
   }
 };
 
-CVirtualAsset = /*abstract*/ class CVirtualAsset {
-  //string Name { get; internal set; }
-
-  //int Width { get; internal set; }
-
-  //int Height { get; internal set; }
-
-  constructor()
-  {
-    this.Name = "";
-    this.Width = 0;
-    this.Height = 0;
-  }
-
-  /*internal*/ /*virtual*/ /*void*/ Unload()
-  {
-  }
-
-  /*internal*/ /*virtual*/ /*void*/ Reload()
-  {
-  }
-
-  /*virtual*/ /*void*/ Dispose()
-  {
-  }
-}
-
 CDraw = class CDraw {
 
   /*internal*/ static /*void*/ Initialize(/*GraphicsDevice*/ graphicsDevice)
@@ -873,10 +1154,9 @@ CDraw = class CDraw {
 
   /*public*/ static /*void*/ UseDebugPixelTexture()
   {
-    // TODO
-    // /*MTexture*/ let parent = new MTexture(CVirtualContent.CreateTexture("debug-pixel", 3, 3, Color.White));
-    // Draw.Pixel = new MTexture(parent, 1, 1, 1, 1);
-    // Draw.Particle = new MTexture(parent, 1, 1, 1, 1);
+    /*MTexture*/ let parent = new CMTexture(CVirtualContent.CreateTexture("debug-pixel", 3, 3, CColor.FromRGB(1.0, 0.0, 1.0)));
+    CDraw.Pixel = new CMTexture(parent, 1, 1, 1, 1);
+    CDraw.Particle = new CMTexture(parent, 1, 1, 1, 1);
   }
 };
 

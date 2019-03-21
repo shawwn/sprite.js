@@ -1,3 +1,7 @@
+function _int(x) {
+  return x | 0;
+}
+
 function FisNumber(x) {
   return typeof x === "number";
 }
@@ -84,6 +88,12 @@ function FLastIndexOfAny(str, array) {
 Cstring = class Cstring {
   static get Empty() {
     return '';
+  }
+
+  static IsNullOrEmpty(value) {
+    if (value != null)
+      return FLength(value) === 0;
+    return true;
   }
 };
 
