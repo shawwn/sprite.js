@@ -1671,7 +1671,7 @@ CEntityList = class CEntityList
     return objList;
   }
 
-  void With(T, /*Action<T>*/ action)
+  /*void*/ With(T, /*Action<T>*/ action)
   {
     for (let entity of this.entities)
     {
@@ -1722,3 +1722,190 @@ CEntityList = class CEntityList
   }
 };
 
+CComponentList = class CComponentList
+{
+  constructor()
+  {
+    this.components = new CList();
+  }
+
+  [Symbol.iterator]()
+  {
+    return this.components.Iterator;
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Update()
+  {
+    // TODO
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Render()
+  {
+    // TODO
+  }
+
+  /*public*/ /*virtual*/ /*void*/ DebugRender(/*Camera*/ camera)
+  {
+    // TODO
+  }
+
+  /*public*/ /*virtual*/ /*void*/ HandleGraphicsReset()
+  {
+    // TODO
+  }
+
+  /*public*/ /*virtual*/ /*void*/ HandleGraphicsCreate()
+  {
+    // TODO
+  }
+}
+
+CTracker = class CTracker
+{
+  static Initialize()
+  {
+  }
+}
+
+CTagLists = class CTagLists
+{
+}
+
+CRendererList = class CRendererList
+{
+}
+
+CScene = class CScene
+{
+  constructor()
+  {
+    this.Paused = false;
+    this.TimeActive = 0.0;
+    this.RawTimeActive = 0.0;
+    this.actualDepthLookup = Object.create(null);//TODO;
+
+    this.Tracker = new CTracker();
+    this.Entities = new CEntityList(this);
+  }
+};
+
+CEntity = class CEntity
+{
+  constructor(position = CVector2.Zero)
+  {
+    this.Active = true;
+    this.Visible = true;
+    this.Collidable = true;
+    this.depth = 0;
+    this.actualDepth = 0.0;
+    this.Position = position;
+    this.tag = 0;
+    this.Components = new CComponentList(this);
+  }
+
+  /*public*/ /*virtual*/ /*void*/ SceneBegin(/*Scene*/ scene)
+  {
+  }
+
+  /*public*/ /*virtual*/ /*void*/ SceneEnd(/*Scene*/ scene)
+  {
+    if (this.Components == null)
+      return;
+    for (/*Component*/ let component of this.Components)
+      component.SceneEnd(scene);
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Awake(/*Scene*/ scene)
+  {
+    if (this.Components == null)
+      return;
+    for (/*Component*/ let component of this.Components)
+      component.EntityAwake();
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Added(/*Scene*/ scene)
+  {
+    this.Scene = scene;
+    if (this.Components != null)
+    {
+      for (/*Component*/ let component of this.Components)
+        component.EntityAdded(scene);
+    }
+    this.Scene.SetActualDepth(this);
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Removed(/*Scene*/ scene)
+  {
+    if (this.Components != null)
+    {
+      for (/*Component*/ let component of this.Components)
+        component.EntityRemoved(scene);
+    }
+    this.Scene = /*(Scene)*/ null;
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Update()
+  {
+    this.Components.Update();
+  }
+
+  /*public*/ /*virtual*/ /*void*/ Render()
+  {
+    this.Components.Render();
+  }
+
+  /*public*/ /*virtual*/ /*void*/ DebugRender(/*Camera*/ camera)
+  {
+    if (this.Collider != null)
+      this.Collider.Render(camera, this.Collidable ? CColor.Red : CColor.DarkRed);
+    this.Components.DebugRender(camera);
+  }
+
+  /*public*/ /*virtual*/ /*void*/ HandleGraphicsReset()
+  {
+    this.Components.HandleGraphicsReset();
+  }
+
+  /*public*/ /*virtual*/ /*void*/ HandleGraphicsCreate()
+  {
+    this.Components.HandleGraphicsCreate();
+  }
+
+  /*public*/ /*void*/ RemoveSelf()
+  {
+    if (this.Scene == null)
+      return;
+    this.Scene.Entities.Remove(this);
+  }
+};
+
+CActor = class CActor extends CEntity
+{
+  constructor(/*Vector2*/ position = CVector2.Zero)
+  {
+    super(position);
+  }
+};
+
+CBirdNPC = class CBirdNPC extends CActor
+{
+  constructor(/*Vector2*/ position, /*BirdNPC.Modes*/ mode)
+  {
+    super(position);
+    this.mode = mode;
+  }
+
+  /*public*/ /*enum*/ static get Modes()
+  {
+    return CBirdNPC.INTERNAL_Modes || (CBirdNPC.INTERNAL_Modes = {
+      ClimbingTutorial: "CBirdNPC.Modes.ClimbingTutorial",
+      DashingTutorial: "CBirdNPC.Modes.DashingTutorial",
+      DreamJumpTutorial: "CBirdNPC.Modes.DreamJumpTutorial",
+      SuperWallJumpTutorial: "CBirdNPC.Modes.SuperWallJumpTutorial",
+      HyperJumpTutorial: "CBirdNPC.Modes.HyperJumpTutorial",
+      FlyAway: "CBirdNPC.Modes.FlyAway",
+      None: "CBirdNPC.Modes.None",
+      Sleeping: "CBirdNPC.Modes.Sleeping",
+    });
+  }
+};

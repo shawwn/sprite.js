@@ -3182,6 +3182,14 @@ CColor = class CColor {
   static get Black() {
     return CColor.FromRGBA(0,0,0,1);
   }
+
+  static get Red() {
+    return CColor.FromRGBA(1,0,0,1);
+  }
+
+  static get DarkRed() {
+    return CColor.FromRGBA(139.0/255.0,0,0,1);
+  }
 }
 
 CEventArgs = class CEventArgs {
