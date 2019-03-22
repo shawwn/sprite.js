@@ -8139,7 +8139,7 @@ function loadImage(url, crossOrigin, callback) {
 
     img.addEventListener('error', onError);
     img.addEventListener('load', onLoad);
-    requestCORSIfNotSameOrigin(img, url);
+    //requestCORSIfNotSameOrigin(img, url);
     img.src = url;
     return img;
   } else if (typeof ImageBitmap !== 'undefined') {

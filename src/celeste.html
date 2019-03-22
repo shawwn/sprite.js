@@ -124,7 +124,7 @@ void main() {
   <script src="./Celeste/Celeste.js"></script>
   <script>
     "use strict";
-    twgl.setDefaults({attribPrefix: "a_"});
+    twgl.setDefaults({attribPrefix: "a_", crossOrigin: ""});
     const m4 = window.m4 = twgl.m4;
     const gl = window.gl = document.querySelector("#c").getContext("webgl");
     const onePointProgramInfo = twgl.createProgramInfo(gl, ["one-point-vs", "one-point-fs"]);
