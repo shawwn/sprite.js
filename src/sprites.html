@@ -74,13 +74,69 @@ varying vec2 v_texCoord;
 
 uniform vec4 u_diffuseMult;
 uniform sampler2D u_diffuse;
+uniform sampler2D u_colorGrade;
+
+float lerp1D(float a, float b, float t) {
+  return (b-a)*t + a;
+}
+
+vec2 lerp2D(vec2 a, vec2 b, vec2 t) {
+  return vec2(
+  lerp1D(a.x, b.x, t.x),
+  lerp1D(a.y, b.y, t.y));
+}
+
+vec3 lerp3D(vec3 a, vec3 b, vec3 t) {
+  return vec3(
+  lerp1D(a.x, b.x, t.x),
+  lerp1D(a.y, b.y, t.y),
+  lerp1D(a.z, b.z, t.z));
+}
+
+vec2 matchTexels2D(vec2 uv, vec2 dims) {
+  vec2 from = vec2(0.5 / dims.x, 0.5 / dims.y);
+  vec2 upto = vec2((dims.x - 0.5) / dims.x, (dims.y - 0.5) / dims.y);
+  return lerp2D(from, upto, uv);
+}
+
+vec3 matchTexels3D(vec3 uv, vec3 dims) {
+  vec3 from = vec3(0.5 / dims.x, 0.5 / dims.y, 0.5 / dims.z);
+  vec3 upto = vec3((dims.x - 0.5) / dims.x, (dims.y - 0.5) / dims.y, (dims.z - 0.5) / dims.z);
+  return lerp3D(from, upto, uv);
+}
+
+vec4 sampleAs3DTexture(sampler2D texture, vec3 uv, float width) {
+    float sliceSize = 1.0 / width;              // space of 1 slice
+    float slicePixelSize = sliceSize / width;           // space of 1 pixel
+    float sliceInnerSize = slicePixelSize * (width - 1.0);  // space of width pixels
+    float zSlice0 = min(floor(uv.z * width), width - 1.0);
+    float zSlice1 = min(zSlice0 + 1.0, width - 1.0);
+    float xOffset = slicePixelSize * 0.5 + uv.x * sliceInnerSize;
+    float s0 = xOffset + (zSlice0 * sliceSize);
+    float s1 = xOffset + (zSlice1 * sliceSize);
+    vec4 slice0Color = texture2D(texture, vec2(s0, uv.y));
+    vec4 slice1Color = texture2D(texture, vec2(s1, uv.y));
+    float zOffset = mod(uv.z * width, 1.0);
+    vec4 result = mix(slice0Color, slice1Color, zOffset);
+    return result;
+}
+
+vec4 colorGrade(vec4 pixel) {
+  // Apply the color grading
+  //pixel is input color, colorGrade is sampler2D of LUT.
+  pixel.rgb = vec3(pixel.a, pixel.a, pixel.a);
+  vec4 gradedPixel = sampleAs3DTexture(u_colorGrade, matchTexels3D(pixel.rgb, vec3(16.0,16.0,16.0)), 16.0);
+  gradedPixel.a = pixel.a;
+  //gradedPixel.a = 1.0;
+  return gradedPixel;
+}
 
 void main() {
   vec4 diffuseColor = texture2D(u_diffuse, v_texCoord) * u_diffuseMult;
   if (diffuseColor.a <= 0.0) {
     discard;
   }
-  gl_FragColor = diffuseColor;
+  gl_FragColor = colorGrade(diffuseColor);
 }
   </script>
   <script id="env-map-vs" type="notjs">
@@ -208,11 +264,15 @@ fontSheet().then(x => {window.font = x})
       return min + Math.random() * (max - min);
     }
 
+    function chooseRandom(items) {
+      return items[Math.floor(rand(0, items.length))];
+    }
+
     // Shared values
     const baseHue = rand(360);
     const camera = m4.identity();
-    const view = m4.identity();
-    const viewProjection = m4.identity();
+    let view = m4.identity();
+    let viewProjection = m4.identity();
 
     // A circle on a canvas
     const ctx = document.createElement("canvas").getContext("2d");
@@ -266,44 +326,44 @@ fontSheet().then(x => {window.font = x})
       cubeFaceCanvases.push(canvas);
     }
 
-function either(x, ...ys) {
-  if (x != null) return x;
-  if (ys.length > 0) return either(...ys);
-}
-
-function framer(name, i) {
-  if (i >= 0) {
-    if (i < 10) {
-      return `${name}0${i}`;
-    }
-    return `${name}${i}`;
+  function either(x, ...ys) {
+    if (x != null) return x;
+    if (ys.length > 0) return either(...ys);
   }
-}
 
-function createAnims(baseOpts, opts) {
-  let r = {};
-  for (let name of Object.keys(opts)) {
-    let src = opts[name].src;
-    if (typeof src === 'string' && src.indexOf('%') >= 0) {
-      let from = Math.max(0, either(opts[name].from, 0));
-      let upto = Math.max(from, either(opts[name].upto, 0));
-      for (let i = from; i <= upto; i++) {
-        let o = Object.assign({src: src.replace(/%/, framer('', i))}, baseOpts);
-        for (let k of Object.keys(opts[name])) {
-          if (k !== 'src' && k !== 'from' && k !== 'upto') {
-            o[k] = opts[name][k];
-          }
-        }
-        let name1 = framer(name, i);
-        r[name1] = o;
+  function framer(name, i) {
+    if (i >= 0) {
+      if (i < 10) {
+        return `${name}0${i}`;
       }
-    } else {
-      let o = Object.assign({}, baseOpts, opts[name]);
-      r[name] = o;
+      return `${name}${i}`;
     }
   }
-  return r;
-}
+
+  function createAnims(baseOpts, opts) {
+    let r = {};
+    for (let name of Object.keys(opts)) {
+      let src = opts[name].src;
+      if (typeof src === 'string' && src.indexOf('%') >= 0) {
+        let from = Math.max(0, either(opts[name].from, 0));
+        let upto = Math.max(from, either(opts[name].upto, 0));
+        for (let i = from; i <= upto; i++) {
+          let o = Object.assign({src: src.replace(/%/, framer('', i))}, baseOpts);
+          for (let k of Object.keys(opts[name])) {
+            if (k !== 'src' && k !== 'from' && k !== 'upto') {
+              o[k] = opts[name][k];
+            }
+          }
+          let name1 = framer(name, i);
+          r[name1] = o;
+        }
+      } else {
+        let o = Object.assign({}, baseOpts, opts[name]);
+        r[name] = o;
+      }
+    }
+    return r;
+  }
 
   function update(time) {
     time *= 0.001;
@@ -319,7 +379,8 @@ function createAnims(baseOpts, opts) {
       const up = [0, 1, 0];
       m4.lookAt(eye, target, up, camera);
       m4.inverse(camera, view);
-    } else {
+      m4.multiply(projection, view, viewProjection);
+    } else if (false) {
       //const w = gl.canvas.width/gl.canvas.width;
       //const h = gl.canvas.height/gl.canvas.height;
       const w = gl.canvas.width;
@@ -331,15 +392,39 @@ function createAnims(baseOpts, opts) {
       const up = [0, 1, 0];
       m4.lookAt(eye, target, up, camera);
       m4.inverse(camera, view);
-    }
+      m4.multiply(projection, view, viewProjection);
+    } else if (true) {
+      let cam = CEngine.Camera;
+      cam.Zoom = CCalc.Lerp(cam.Zoom, window.zoom, 1/60.0);
+      cam.Approach(window.look, 1/60.0);
+      //const w = gl.canvas.width/gl.canvas.width;
+      //const h = gl.canvas.height/gl.canvas.height;
+      const w = gl.canvas.width;
+      const h = gl.canvas.height;
+      projection = m4.ortho(cam.Left, cam.Right, cam.Bottom, cam.Top, 0.5, 100);
 
-    m4.multiply(projection, view, viewProjection);
+      const eye = [0, 0, 10];
+      const target = [0, 0, 0];
+      const up = [0, 1, 0];
+      m4.lookAt(eye, target, up, camera);
+      m4.inverse(camera, view);
+      m4.multiply(projection, view, viewProjection);
+    } else {
+      let cam = CEngine.Camera;
+      //window.projection = projection = m4.ortho(cam.Left, cam.Right, cam.Bottom, cam.Top, 0.5, 100.0);
+      window.projection = projection = m4.ortho(0.0, cam.Viewport.Width, cam.Viewport.Height, 0.0, 0.5, 100.0);
+      window.view = view = cam.Matrix.Array;
+      m4.multiply(projection, view, viewProjection);
+    }
 
     updateCanvas(time);
     twgl.setTextureFromElement(gl, textures.fromCanvas, ctx.canvas);
 
     window.objects.forEach(function(obj) {
       const uni = obj.uniforms;
+      let grade = window.grade = window.grade || chooseRandom(grades);
+      uni.u_colorGrade = window.textures[grade];
+
       const world = uni.u_world;
       m4.identity(world);
       m4.rotateY(world, time * obj.ySpeed, world);
@@ -407,7 +492,7 @@ function createAnims(baseOpts, opts) {
     twgl.setTextureFromElement(gl, textures.fromCanvas, ctx.canvas);
 
     //setXYQuadVertices(shapes.plane, XYQuadPositions(Math.random()*2), [0, 0, 1, 0, 0, 1, 1, 1])
-    renderString("Hello, world!");
+    renderString(`Hello, world! (${window.grade.replace(/colorGrade_/, '')})`);
   }
 
 function randi(n) {
@@ -425,6 +510,10 @@ CCeleste = class CCeleste extends CEngine {
   }
   LoadContent() {
     super.LoadContent();
+    CEngine.Camera = new CCamera();
+    window.zoom = 1;
+    window.look = new CVector2(-50, -50)
+
     // This is soley to make it easy to pick textures at random
     const twoDTextures = [
       textures.checker,
@@ -503,10 +592,13 @@ CCeleste = class CCeleste extends CEngine {
       });
     }
     */
+    let grades = window.grades = Object.keys(window.textures).filter(x => x.startsWith("colorGrade_"));
+    let grade = window.grade = window.grade || chooseRandom(grades);
     let uniforms = {
       //u_diffuseMult: chroma.hsv((baseHue + rand(0, 60)) % 360, 0.4, 0.8).gl(),
-      u_diffuseMult: chroma.rgb(255,255,255).gl(),
+      u_diffuseMult: chroma.rgb(128,128,192).gl(),
       u_diffuse: CDraw.Font.Texture.Texture.Handle,
+      u_colorGrade: window.textures[grade],
       u_viewInverse: camera,
       u_world: m4.identity(),
       u_worldInverseTranspose: m4.identity(),
@@ -552,6 +644,15 @@ CCeleste = class CCeleste extends CEngine {
   twgl.createTextures(gl, createAnims({min: gl.LINEAR, mag: gl.NEAREST},
   {
       font: { src: "../tests/celeste/Monocle/MonocleDefault.png", },
+      colorGrade_none: { src: "../tests/celeste/Graphics/ColorGrading/none.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_cold: { src: "../tests/celeste/Graphics/ColorGrading/cold.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_credits: { src: "../tests/celeste/Graphics/ColorGrading/credits.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_hot: { src: "../tests/celeste/Graphics/ColorGrading/hot.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_oldsite: { src: "../tests/celeste/Graphics/ColorGrading/oldsite.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_panicattack: { src: "../tests/celeste/Graphics/ColorGrading/panicattack.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_reflection: { src: "../tests/celeste/Graphics/ColorGrading/reflection.png", min: gl.LINEAR, mag: gl.LINEAR, },
+      colorGrade_templevoid: { src: "../tests/celeste/Graphics/ColorGrading/templevoid.png", min: gl.LINEAR, mag: gl.LINEAR, },
+    
 
       // a power of 2 image
       //hftIcon: { src: "images/hft-icon-16.png", mag: gl.NEAREST },
