@@ -494,6 +494,14 @@ CPoint = class CPoint {
     this.Y = y;
   }
 
+  Array(dst)
+  {
+    dst = dst || new Float32Array(2);
+    dst[0] = this.X;
+    dst[1] = this.Y;
+    return dst;
+  }
+
   static get Zero() {
     return new CPoint(0, 0);
   }
@@ -868,6 +876,14 @@ CVector2 = class CVector2 {
     this.Y = y;
   }
 
+  Array(dst)
+  {
+    dst = dst || new Float32Array(2);
+    dst[0] = this.X;
+    dst[1] = this.Y;
+    return dst;
+  }
+
   static Transform(v, x) {
     if (x instanceof CMatrix) return CVector2.TransformByMatrix(v, x);
     if (x instanceof CQuaternion) return CVector2.TransformByQuaternion(v, x);
@@ -1072,6 +1088,16 @@ CVector2 = class CVector2 {
 };
 
 CVector3 = class CVector3 {
+
+  Array(dst)
+  {
+    dst = dst || new Float32Array(3);
+    dst[0] = this.X;
+    dst[1] = this.Y;
+    dst[2] = this.Z;
+    return dst;
+  }
+
   /// <summary>
   /// Returns a <see cref="Vector3"/> with components 0, 0, 0.
   /// </summary>

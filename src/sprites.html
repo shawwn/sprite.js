@@ -365,8 +365,14 @@ fontSheet().then(x => {window.font = x})
     return r;
   }
 
+window.hookUpdate = window.hookUpdate || function (time) {
+}
+
   function update(time) {
+    CEngine.Camera.Bounds = CEngine.Instance.Window.ClientBounds;
+    CEngine.Camera.CenterOrigin();
     time *= 0.001;
+    window.hookUpdate(time);
 
     const radius = 20;
     const orbitSpeed = time * 0.1;
@@ -401,11 +407,15 @@ fontSheet().then(x => {window.font = x})
       //const h = gl.canvas.height/gl.canvas.height;
       const w = gl.canvas.width;
       const h = gl.canvas.height;
+      const rot = cam.Angle;
+      cam.Angle = 0;
       projection = m4.ortho(cam.Left, cam.Right, cam.Bottom, cam.Top, 0.5, 100);
+      cam.Angle = rot;
 
       const eye = [0, 0, 10];
       const target = [0, 0, 0];
-      const up = [0, 1, 0];
+      //const up = [0, 1, 0];
+      const up = cam.Matrix.Up.Array();
       m4.lookAt(eye, target, up, camera);
       m4.inverse(camera, view);
       m4.multiply(projection, view, viewProjection);

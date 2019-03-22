@@ -1333,9 +1333,9 @@ CCamera = class CCamera {
     this.changed = false;
     this.Round = true;
 
-    this.Viewport = new CViewport();
-    this.Viewport.Width = width;
-    this.Viewport.Height = height;
+    this.viewport = new CViewport();
+    this.viewport.Width = width;
+    this.viewport.Height = height;
     this.UpdateMatrices();
   }
 
@@ -1434,6 +1434,50 @@ CCamera = class CCamera {
   {
     this.changed = true;
     this.position.Y = value;
+  }
+
+  get Width()
+  {
+    return this.viewport.Width;
+  }
+
+  set Width(value)
+  {
+    this.changed = true;
+    this.viewport.Width = value;
+  }
+
+  get Height()
+  {
+    return this.viewport.Height;
+  }
+
+  set Height(value)
+  {
+    this.changed = true;
+    this.viewport.Height = value;
+  }
+
+  get Viewport()
+  {
+    return this.viewport;
+  }
+
+  set Viewport(value)
+  {
+    this.changed = true;
+    this.viewport = value;
+  }
+
+  get Bounds()
+  {
+    return this.Viewport.Bounds;
+  }
+
+  set Bounds(value)
+  {
+    this.changed = true;
+    this.Viewport.Bounds = value;
   }
 
   get Zoom()
