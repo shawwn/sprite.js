@@ -181,6 +181,11 @@ CTimeSpan = class CTimeSpan {
     this._ticks = BigInt(ticks);
   }
 
+  Clone()
+  {
+    return new CTimeSpan(this._ticks);
+  }
+
   static Now()
   {
     return CTimeSpan.FromMilliseconds(Date.now());

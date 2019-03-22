@@ -124,7 +124,7 @@ vec4 sampleAs3DTexture(sampler2D texture, vec3 uv, float width) {
 vec4 colorGrade(vec4 pixel) {
   // Apply the color grading
   //pixel is input color, colorGrade is sampler2D of LUT.
-  pixel.rgb = vec3(pixel.a, pixel.a, pixel.a);
+  //pixel = vec4(pixel.a, pixel.a, pixel.a, pixel.a) * u_diffuseMult;
   vec4 gradedPixel = sampleAs3DTexture(u_colorGrade, matchTexels3D(pixel.rgb, vec3(16.0,16.0,16.0)), 16.0);
   gradedPixel.a = pixel.a;
   //gradedPixel.a = 1.0;
@@ -420,10 +420,24 @@ fontSheet().then(x => {window.font = x})
     updateCanvas(time);
     twgl.setTextureFromElement(gl, textures.fromCanvas, ctx.canvas);
 
+    // both branches are equivalent; experimenting.
+    let color;
+    if (true) {
+      color = CCalc.BetweenInterval(CEngine.Time.TotalSeconds, 0.5) ? window.color : window.colorB;
+    } else {
+      if (CCalc.OnInterval(CEngine.Time.TotalSeconds, CEngine.PrevTime.TotalSeconds, 0.5)) {
+        let tmp = window.color;
+        window.color = window.colorB;
+        window.colorB = tmp;
+        color = window.color;
+      }
+    }
+
     window.objects.forEach(function(obj) {
       const uni = obj.uniforms;
       let grade = window.grade = window.grade || chooseRandom(grades);
       uni.u_colorGrade = window.textures[grade];
+      uni.u_diffuseMult = color;
 
       const world = uni.u_world;
       m4.identity(world);
@@ -594,9 +608,11 @@ CCeleste = class CCeleste extends CEngine {
     */
     let grades = window.grades = Object.keys(window.textures).filter(x => x.startsWith("colorGrade_"));
     let grade = window.grade = window.grade || chooseRandom(grades);
+    window.color = window.color || (chroma.rgb(192,128,128).gl());
+    window.colorB = window.colorB || chroma.rgb(128,128,192).gl()
     let uniforms = {
       //u_diffuseMult: chroma.hsv((baseHue + rand(0, 60)) % 360, 0.4, 0.8).gl(),
-      u_diffuseMult: chroma.rgb(128,128,192).gl(),
+      u_diffuseMult: window.color,
       u_diffuse: CDraw.Font.Texture.Texture.Handle,
       u_colorGrade: window.textures[grade],
       u_viewInverse: camera,

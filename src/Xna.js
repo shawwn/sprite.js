@@ -69,6 +69,10 @@ CGameTime = class CGameTime {
     this.ElapsedGameTime = elapsedRealTime;
     this.IsRunningSlowly = isRunningSlowly;
   }
+
+  Clone() {
+    return new CGameTime(this.TotalGameTime.Clone(), this.ElapsedGameTime.Clone(), this.IsRunningSlowly);
+  }
 };
 
 CMath = class CMath {

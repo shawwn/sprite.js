@@ -552,6 +552,7 @@ CEngine = class CEngine extends CGame {
       CEngine.TimeRateB = 1;
       CEngine.FreezeTimer = 0.0;
       CEngine.ClearColor = CColor.Black;
+      CEngine.PrevTime = CEngine.Time = CTimeSpan.Zero;
       value.InactiveSleepTime = CTimeSpan.Zero;
     }
   }
@@ -620,6 +621,8 @@ CEngine = class CEngine extends CGame {
   {
     CEngine.RawDeltaTime = /*(float)*/ gameTime.ElapsedGameTime.TotalSeconds;
     CEngine.DeltaTime = CEngine.RawDeltaTime * CEngine.TimeRate * CEngine.TimeRateB;
+    CEngine.PrevTime = (CEngine.Time || gameTime.TotalGameTime).Clone();
+    CEngine.Time = gameTime.TotalGameTime.Clone();
     await MInput.Update();
     if (CEngine.ExitOnEscapeKeypress && MInput.Keyboard.Pressed(Keys.Escape))
       this.Exit();
@@ -1998,6 +2001,18 @@ CCalc = class CCalc {
     return (n == null) ? FLength(list) : n;
   }
 
+
+  /*public*/ static /*bool*/ BetweenInterval(/*float*/ val, /*float*/ interval)
+  {
+    return /*(double)*/ val % (/*(double)*/ interval * 2.0) > /*(double)*/ interval;
+  }
+
+  /*public*/ static /*bool*/ OnInterval(/*float*/ val, /*float*/ prevVal, /*float*/ interval)
+  {
+    return _int(/*(double)*/ prevVal / /*(double)*/ interval) !== _int(/*(double)*/ val / /*(double)*/ interval);
+  }
+
+
   static GiveMe(index, ...args)
   {
     if (index < 0 || index >= CCalc.Length(args))
@@ -2068,6 +2083,22 @@ CCalc = class CCalc {
     dst.Y = CCalc.Lerp_float(a.Y, b.Y, t);
     return dst;
   }
+
+    /*public*/ static /*float*/ Map(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
+    {
+      return /*(float)*/ ((/*(double)*/ val - /*(double)*/ min) / (/*(double)*/ max - /*(double)*/ min) * (/*(double)*/ newMax - /*(double)*/ newMin)) + newMin;
+    }
+
+    /*public*/ static /*float*/ SineMap(/*float*/ counter, /*float*/ newMin, /*float*/ newMax)
+    {
+      return CCalc.Map(/*(float)*/ CMath.Sin(/*(double)*/ counter), -1, 1, newMin, newMax);
+    }
+
+    /*public*/ static /*float*/ ClampedMap(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
+    {
+      return CMathHelper.Clamp(/*(float)*/ ((/*(double)*/ val - /*(double)*/ min) / (/*(double)*/ max - /*(double)*/ min)), 0.0, 1) * (newMax - newMin) + newMin;
+    }
+
 };
 
 /**
