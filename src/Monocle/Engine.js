@@ -1248,3 +1248,247 @@ CDraw = class CDraw {
   }
 };
 
+CCamera = class CCamera {
+  constructor(...args)
+  {
+    switch (args.length) {
+      case 0: { this.CCamera0(...args); } break;
+      case 2: { this.CCamera2(...args); } break;
+      default: throw new CArgumentException("Invalid argument count.");
+    }
+  }
+
+  CCamera0()
+  {
+    this.CCamera2(CEngine.Width, CEngine.Height);
+  }
+
+  CCamera2(/*int*/ width, /*int*/ height)
+  {
+    this.matrix = CMatrix.Identity;
+    this.inverse = CMatrix.Identity;
+    this.position = CVector2.Zero;
+    this.zoom = CVector2.One;
+    this.origin = CVector2.Zero;
+    this.angle = 0.0;
+    this.changed = false;
+
+    this.Viewport = new CViewport();
+    this.Viewport.Width = width;
+    this.Viewport.Height = height;
+    this.UpdateMatrices();
+  }
+
+  UpdateMatrices()
+  {
+    /*
+    this.matrix = Matrix.Identity * 
+      Matrix.CreateTranslation(new Vector3(-new Vector2((float) (int) Math.Floor((double) this.position.X), (float) (int) Math.Floor((double) this.position.Y)), 0.0f)) *
+      Matrix.CreateRotationZ(this.angle) * 
+      Matrix.CreateScale(new Vector3(this.zoom, 1f)) * 
+      Matrix.CreateTranslation(new Vector3(new Vector2((float) (int) Math.Floor((double) this.origin.X), (float) (int) Math.Floor((double) this.origin.Y)), 0.0f));
+      */
+    this.matrix.Reset();
+    this.matrix["*="](CMatrix.CreateTranslation(
+      - /*(float)*/ /*(int)*/ CMath.Floor(/*(double)*/ this.position.X),
+      - /*(float)*/ /*(int)*/ CMath.Floor(/*(double)*/ this.position.Y),
+      0.0));
+    this.matrix["*="](CMatrix.CreateRotationZ(this.angle));
+    this.matrix["*="](CMatrix.CreateScale(this.zoom.X, this.zoom.Y, 1.0));
+    this.matrix["*="](CMatrix.CreateTranslation(
+      /*(float)*/ /*(int)*/ CMath.Floor(/*(double)*/ this.origin.X),
+      /*(float)*/ /*(int)*/ CMath.Floor(/*(double)*/ this.origin.Y),
+      0.0));
+
+    this.inverse = this.matrix.Inverse(this.inverse);
+    this.changed = false;
+  }
+
+  CopyFrom(/*Camera*/ other)
+  {
+    this.position.Assign(other.position);
+    this.origin.Assign(other.origin);
+    this.angle = other.angle;
+    this.zoom.Assign(other.zoom);
+    this.changed = true;
+  }
+
+  get Matrix()
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    return this.matrix;
+  }
+
+  get Inverse()
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    return this.inverse;
+  }
+
+  get Position()
+  {
+    return this.position;
+  }
+
+  set Position(value)
+  {
+    this.changed = true;
+    this.position.Assign(value);
+  }
+
+  get Origin()
+  {
+    return this.origin;
+  }
+
+  set Origin(value)
+  {
+    this.changed = true;
+    this.origin.Assign(value);
+  }
+
+  get X()
+  {
+    return this.position.X;
+  }
+
+  set X(value)
+  {
+    this.changed = true;
+    this.position.X = value;
+  }
+
+  get Y()
+  {
+    return this.position.Y;
+  }
+
+  set Y(value)
+  {
+    this.changed = true;
+    this.position.Y = value;
+  }
+
+  get Zoom()
+  {
+    return this.zoom.X;
+  }
+
+  set Zoom(value)
+  {
+    this.changed = true;
+    this.zoom.X = this.zoom.Y = value;
+  }
+
+  get Angle()
+  {
+    return this.angle;
+  }
+
+  set Angle(value)
+  {
+    this.changed = true;
+    this.angle = value;
+  }
+
+  get Left()
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    return CVector2.Transform(CVector2.Zero, this.Inverse).X;
+  }
+
+  set Left(value)
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    this.X = CVector2.Transform(CVector2.UnitX["*"](value), this.Matrix).X;
+  }
+
+  get Right()
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    return CVector2.Transform(CVector2.UnitX["*"](this.Viewport.Width), this.Inverse).X;
+  }
+
+  set Right(value)
+  {
+    throw new CNotImplementedException();
+  }
+
+  get Top()
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    return CVector2.Transform(CVector2.Zero, this.Inverse).Y;
+  }
+
+  set Top(value)
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    this.Y = CVector2.Transform(CVector2.UnitY["*"](value), this.Matrix).Y;
+  }
+
+  get Bottom()
+  {
+    if (this.changed)
+      this.UpdateMatrices();
+    return CVector2.Transform(CVector2.UnitY["*"](this.Viewport.Height), this.Inverse).Y;
+  }
+
+  set Bottom(value)
+  {
+    throw new CNotImplementedException();
+  }
+
+  /*public*/ /*void*/ CenterOrigin()
+  {
+    this.origin = new CVector2(/*(float)*/ this.Viewport.Width / 2, /*(float)*/ this.Viewport.Height / 2);
+    this.changed = true;
+  }
+
+  /*public*/ /*void*/ RoundPosition()
+  {
+    this.position.X = /*(float)*/ CMath.Round(/*(double)*/ this.position.X);
+    this.position.Y = /*(float)*/ CMath.Round(/*(double)*/ this.position.Y);
+    this.changed = true;
+  }
+
+  /*public*/ /*Vector2*/ ScreenToCamera(/*Vector2*/ position)
+  {
+    return CVector2.Transform(position, this.Inverse);
+  }
+
+  /*public*/ /*Vector2*/ CameraToScreen(/*Vector2*/ position)
+  {
+    return CVector2.Transform(position, this.Matrix);
+  }
+
+  /*public*/ /*void*/ Approach(...args)
+  {
+    switch(args.length) {
+      case 2: return this.Approach2(...args); break;
+      case 3: return this.Approach3(...args); break;
+      default: throw new CArgumentException("Invalid argument count");
+    }
+  }
+
+  /*public*/ /*void*/ Approach2(/*Vector2*/ position, /*float*/ ease)
+  {
+    this.Position["+="](position["-"](this.Position)["*"](ease));
+  }
+
+  /*public*/ /*void*/ Approach3(/*Vector2*/ position, /*float*/ ease, /*float*/ maxDistance)
+  {
+    /*Vector2*/ let vector2 = position["-"](this.Position)["*"](ease);
+    if (/*(double)*/ vector2.Length() > /*(double)*/ maxDistance)
+      this.Position["+="](CVector2.Normalize(vector2)["*"](maxDistance));
+    else
+      this.Position["+="](vector2);
+  }
+};
+

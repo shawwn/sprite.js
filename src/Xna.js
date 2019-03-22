@@ -82,6 +82,8 @@ CMath = class CMath {
   static Atan(x) { return Math.atan(x); }
   static Sqrt(x) { return Math.sqrt(x); }
   static Sign(x) { return Math.sign(x); }
+  static Floor(x) { return Math.floor(x); }
+  static Round(x) { return Math.round(x); }
   static Min(x, y) { return Math.min(x, y); }
   static Max(x, y) { return Math.max(x, y); }
   static Clamp(a, b, t) { return Math.max(a, Math.min(b, t)); }
@@ -474,18 +476,22 @@ CPoint = class CPoint {
   }
 
   Clone(dst = new CVector2()) {
-    dst.Assign(this);
-    return dst;
+    return dst.Assign(this);
   }
 
   Assign(value) {
     this.X = value.X;
     this.Y = value.Y;
+    return this;
   }
 
-  Reset(x, y) {
+  Reset(x=0.0, y=0.0) {
     this.X = x;
     this.Y = y;
+  }
+
+  static get Zero() {
+    return new CPoint(0, 0);
   }
 
   /// <summary>
@@ -506,12 +512,6 @@ CPoint = class CPoint {
 // 		{
 // 			return X ^ Y;
 // 		}
-
-
-  static get Zero() {
-    return new CPoint(0, 0);
-  }
-
 
   /*public*/ /*CPoint*/ /*operator*/ ["="](/*Point*/ p2)
   {
@@ -536,38 +536,38 @@ CPoint = class CPoint {
     return !this.Equals(p2);
   }
 
-  /*public*/ static /*bool*/ /*operator*/ ["+"](/*Point*/ p1, /*Point*/ p2)
+  /*public*/ static /*CPoint*/ /*operator*/ ["+"](/*Point*/ p1, /*Point*/ p2)
   {
     return new CPoint(p1.X + p2.X, p1.Y + p2.Y);
   }
-  /*public*/ /*bool*/ /*operator*/ ["+"](/*Point*/ p2)
+  /*public*/ /*CPoint*/ /*operator*/ ["+"](/*Point*/ p2)
   {
     return new CPoint(this.X + p2.X, this.Y + p2.Y);
   }
 
-  /*public*/ static /*bool*/ /*operator*/ ["-"](/*Point*/ p1, /*Point*/ p2)
+  /*public*/ static /*CPoint*/ /*operator*/ ["-"](/*Point*/ p1, /*Point*/ p2)
   {
     return new CPoint(p1.X - p2.X, p1.Y - p2.Y);
   }
-  /*public*/ /*bool*/ /*operator*/ ["-"](/*Point*/ p2)
+  /*public*/ /*CPoint*/ /*operator*/ ["-"](/*Point*/ p2)
   {
     return new CPoint(this.X - p2.X, this.Y - p2.Y);
   }
 
-  /*public*/ static /*bool*/ /*operator*/ ["*"](/*Point*/ p1, /*Point*/ p2)
+  /*public*/ static /*CPoint*/ /*operator*/ ["*"](/*Point*/ p1, /*Point*/ p2)
   {
     return new CPoint(p1.X * p2.X, p1.Y * p2.Y);
   }
-  /*public*/ /*bool*/ /*operator*/ ["*"](/*Point*/ p2)
+  /*public*/ /*CPoint*/ /*operator*/ ["*"](/*Point*/ p2)
   {
     return new CPoint(this.X * p2.X, this.Y * p2.Y);
   }
 
-  /*public*/ static /*bool*/ /*operator*/ ["/"](/*Point*/ p1, /*Point*/ p2)
+  /*public*/ static /*CPoint*/ /*operator*/ ["/"](/*Point*/ p1, /*Point*/ p2)
   {
     return new CPoint(p1.X / p2.X, p1.Y / p2.Y);
   }
-  /*public*/ /*bool*/ /*operator*/ ["/"](/*Point*/ p2)
+  /*public*/ /*CPoint*/ /*operator*/ ["/"](/*Point*/ p2)
   {
     return new CPoint(this.X / p2.X, this.Y / p2.Y);
   }
@@ -779,14 +779,66 @@ CViewport = class CViewport {
     this.maxDepth = 1.0;
   }
 
+  /// <summary>
+  /// Constructs an empty viewport.
+  /// </summary>
+  /*public*/ CViewport0()
+  {
+    this.x = 0;
+    this.y = 0;
+    this.width = 0;
+    this.height = 0;
+    this.minDepth = 0.0;
+    this.maxDepth = 1.0;
+  }
+
   constructor(...args)
   {
     switch(args.length) {
+      case 0: this.CViewport0(...args); break;
       case 1: this.CViewport1(...args); break;
       case 4: this.CViewport4(...args); break;
       case 6: this.CViewport6(...args); break;
       default: throw new CArgumentException("Invalid argument count");
     }
+  }
+
+  get X() { return this.x; }
+  set X(value) { this.x = value; }
+
+  get Y() { return this.y; }
+  set Y(value) { this.y = value; }
+
+  get Width() { return this.width; }
+  set Width(value) { this.width = value; }
+
+  get Height() { return this.height; }
+  set Height(value) { this.height = value; }
+
+  get MinDepth() { return this.minDepth; }
+  set MinDepth(value) { this.minDepth = value; }
+
+  get MaxDepth() { return this.maxDepth; }
+  set MaxDepth(value) { this.maxDepth = value; }
+
+  get AspectRatio()
+  {
+    if ((this.height !== 0) && (this.width !== 0))
+      return this.width / this.height;
+    return 0.0;
+  }
+
+  get Bounds()
+  {
+    return new CRectangle(this.x, this.y, this.width, this.height);
+  }
+
+  set Bounds(value)
+  {
+    this.x = value.X;
+    this.y = value.Y;
+    this.width = value.Width;
+    this.height = value.Height;
   }
 
 };
@@ -798,18 +850,24 @@ CVector2 = class CVector2 {
   }
 
   Clone(dst = new CVector2()) {
-    dst.Assign(this);
-    return dst;
+    return dst.Assign(this);
   }
 
   Assign(value) {
     this.X = value.X;
     this.Y = value.Y;
+    return this;
   }
 
-  Reset(x, y) {
+  Reset(x=0.0, y=0.0) {
     this.X = x;
     this.Y = y;
+  }
+
+  static Transform(v, x) {
+    if (x instanceof CMatrix) return CVector2.TransformByMatrix(v, x);
+    if (x instanceof CQuaternion) return CVector2.TransformByQuaternion(v, x);
+    throw new CArgumentException("Invalid argument");
   }
 
   /// <summary>
@@ -873,6 +931,139 @@ CVector2 = class CVector2 {
   }
   static get Left() {
     return new CVector2(-1, 0);
+  }
+
+  /// <summary>
+  /// Returns the length of this <see cref="CVector2"/>.
+  /// </summary>
+  /// <returns>The length of this <see cref="CVector2"/>.</returns>
+  /*public*/ /*float*/ Length()
+  {
+    return /*(float)*/ CMath.Sqrt((this.X * this.X) + (this.Y * this.Y));
+  }
+
+  /// <summary>
+  /// Returns the squared length of this <see cref="CVector2"/>.
+  /// </summary>
+  /// <returns>The squared length of this <see cref="CVector2"/>.</returns>
+  /*public*/ /*float*/ LengthSquared()
+  {
+    return (this.X * this.X) + (this.Y * this.Y);
+  }
+
+  /// <summary>
+  /// Turns this <see cref="CVector2"/> to a unit vector with the same direction.
+  /// </summary>
+  /*public*/ /*void*/ Normalize()
+  {
+    /*float*/ var factor = 1.0 / /*(float)*/ CMath.Sqrt(
+      (this.X * this.X) +
+      (this.Y * this.Y)
+    );
+    this.X *= factor;
+    this.Y *= factor;
+    return this;
+  }
+
+  static Normalize(/*CVector2*/ v, /*CVector2*/ dst = new CVector2())
+  {
+    dst.Assign(v);
+    dst.Normalize();
+    return dst;
+  }
+
+  /// <summary>
+  /// Compares whether current instance is equal to specified <see cref="Vector2"/>.
+  /// </summary>
+  /// <param name="other">The <see cref="Vector2"/> to compare.</param>
+  /// <returns><c>true</c> if the instances are equal; <c>false</c> otherwise.</returns>
+  /*public*/ /*bool*/ Equals(/*Vector2*/ other)
+  {
+    return (other instanceof CVector2) && ((this.X === other.X) && (this.Y === other.Y));
+  }
+
+// 		/// <summary>
+// 		/// Gets the hash code of this <see cref="Vector2"/>.
+// 		/// </summary>
+// 		/// <returns>Hash code of this <see cref="Vector2"/>.</returns>
+// 		public override int GetHashCode()
+// 		{
+// 			return X ^ Y;
+// 		}
+
+  /*public*/ /*CVector2*/ /*operator*/ ["="](/*Vector2*/ p2)
+  {
+    this.X = p2.X;
+    this.Y = p2.Y;
+    return this;
+  }
+
+
+  /*public*/ /*bool*/ /*operator*/ ["=="](/*Vector2*/ p2)
+  {
+    return this.Equals(p2);
+  }
+
+  /*public*/ /*bool*/ /*operator*/ ["==="](/*Vector2*/ p2)
+  {
+    return this.Equals(p2);
+  }
+
+  /*public*/ /*bool*/ /*operator*/ ["!="](/*Vector2*/ p2)
+  {
+    return !this.Equals(p2);
+  }
+
+  /*public*/ static /*CVector2*/ /*operator*/ ["+"](/*Vector2*/ p1, /*Vector2*/ p2)
+  {
+    return new CVector2(p1.X + p2.X, p1.Y + p2.Y);
+  }
+  /*public*/ /*CVector2*/ /*operator*/ ["+"](/*Vector2*/ p2)
+  {
+    return new CVector2(this.X + p2.X, this.Y + p2.Y);
+  }
+  /*public*/ /*CVector2*/ /*operator*/ ["+="](/*Vector2*/ p2)
+  {
+    this.X += p2.X;
+    this.Y += p2.Y;
+    return this;
+  }
+
+  /*public*/ static /*CVector2*/ /*operator*/ ["-"](/*Vector2*/ p1, /*Vector2*/ p2)
+  {
+    return new CVector2(p1.X - p2.X, p1.Y - p2.Y);
+  }
+  /*public*/ /*CVector2*/ /*operator*/ ["-"](/*Vector2*/ p2)
+  {
+    return new CVector2(this.X - p2.X, this.Y - p2.Y);
+  }
+  /*public*/ /*CVector2*/ /*operator*/ ["-="](/*Vector2*/ p2)
+  {
+    this.X -= p2.X;
+    this.Y -= p2.Y;
+    return this;
+  }
+
+  /*public*/ static /*CVector2*/ /*operator*/ ["*"](/*Vector2*/ p1, /*Vector2*/ p2)
+  {
+    if (typeof p2 === "number") return new CVector2(p1.X * p2, p1.Y * p2);
+    if (p2 instanceof CVector2) return new CVector2(p1.X * p2.X, p1.Y * p2.Y);
+    throw new CArgumentException("Invalid argument");
+  }
+  /*public*/ /*CVector2*/ /*operator*/ ["*"](/*Vector2*/ p2)
+  {
+    return CVector2["*"](this, p2);
+  }
+
+  /*public*/ static /*CVector2*/ /*operator*/ ["/"](/*Vector2*/ p1, /*Vector2*/ p2)
+  {
+    if (typeof p2 === "number") return new CVector2(p1.X / p2, p1.Y / p2);
+    if (p2 instanceof CVector2) return new CVector2(p1.X / p2.X, p1.Y / p2.Y);
+    throw new CArgumentException("Invalid argument");
+  }
+  /*public*/ /*CVector2*/ /*operator*/ ["/"](/*Vector2*/ p2)
+  {
+    return CVector2["/"](this, p2);
   }
 };
 
@@ -1651,7 +1842,7 @@ CMatrix = class CMatrix {
   /// </summary>
   /*public*/ static /*Matrix*/ get Identity()
   {
-    return CMatrix.identity;
+    return new CMatrix();
   }
 
   /// <summary>
@@ -1757,6 +1948,31 @@ CMatrix = class CMatrix {
     this.M44 = m44;
   }
 
+  Reset(
+    /*float*/ m11 = 1, /*float*/ m12 = 0, /*float*/ m13 = 0, /*float*/ m14 = 0,
+    /*float*/ m21 = 0, /*float*/ m22 = 1, /*float*/ m23 = 0, /*float*/ m24 = 0,
+    /*float*/ m31 = 0, /*float*/ m32 = 0, /*float*/ m33 = 1, /*float*/ m34 = 0,
+    /*float*/ m41 = 0, /*float*/ m42 = 0, /*float*/ m43 = 0, /*float*/ m44 = 1,
+  ) {
+    this.M11 = m11;
+    this.M12 = m12;
+    this.M13 = m13;
+    this.M14 = m14;
+    this.M21 = m21;
+    this.M22 = m22;
+    this.M23 = m23;
+    this.M24 = m24;
+    this.M31 = m31;
+    this.M32 = m32;
+    this.M33 = m33;
+    this.M34 = m34;
+    this.M41 = m41;
+    this.M42 = m42;
+    this.M43 = m43;
+    this.M44 = m44;
+    return this;
+  }
+
   static Assign(dst, src) {
     dst.M11 = src.M11;
     dst.M12 = src.M12;
@@ -1774,6 +1990,30 @@ CMatrix = class CMatrix {
     dst.M42 = src.M42;
     dst.M43 = src.M43;
     dst.M44 = src.M44;
+  }
+
+  Clone(dst = new CMatrix()) {
+    return dst.Assign(this);
+  }
+
+  Assign(value) {
+    this.M11 = value.M11;
+    this.M12 = value.M12;
+    this.M13 = value.M13;
+    this.M14 = value.M14;
+    this.M21 = value.M21;
+    this.M22 = value.M22;
+    this.M23 = value.M23;
+    this.M24 = value.M24;
+    this.M31 = value.M31;
+    this.M32 = value.M32;
+    this.M33 = value.M33;
+    this.M34 = value.M34;
+    this.M41 = value.M41;
+    this.M42 = value.M42;
+    this.M43 = value.M43;
+    this.M44 = value.M44;
+    return this;
   }
 
   //#endregion
@@ -2222,7 +2462,7 @@ CMatrix = class CMatrix {
   /// <param name="result">The rotation <see cref="Matrix"/> around X axis as an output parameter.</param>
   /*public*/ static /*void*/ CreateRotationX(/*float*/ radians, /*out*/ /*Matrix*/ result = new CMatrix())
   {
-    CMatrix.Assign(result, CMatrix.Identity);
+    result.Reset();
 
     /*float*/ var val1 = /*(float)*/ CMath.Cos(radians);
     /*float*/ var val2 = /*(float)*/ CMath.Sin(radians);
@@ -2241,7 +2481,7 @@ CMatrix = class CMatrix {
   /// <param name="result">The rotation <see cref="Matrix"/> around Y axis as an output parameter.</param>
   /*public*/ static /*void*/ CreateRotationY(/*float*/ radians, /*out*/ /*Matrix*/ result = new CMatrix())
   {
-    CMatrix.Assign(result, CMatrix.Identity);
+    result.Reset();
 
     /*float*/ var val1 = /*(float)*/ CMath.Cos(radians);
     /*float*/ var val2 = /*(float)*/ CMath.Sin(radians);
@@ -2260,7 +2500,7 @@ CMatrix = class CMatrix {
   /// <param name="result">The rotation <see cref="Matrix"/> around Z axis as an output parameter.</param>
   /*public*/ static /*void*/ CreateRotationZ(/*float*/ radians, /*out*/ /*Matrix*/ result = new CMatrix())
   {
-    CMatrix.assign(result, CMatrix.Identity);
+    result.Reset();
 
     /*float*/ var val1 = /*(float)*/ CMath.Cos(radians);
     /*float*/ var val2 = /*(float)*/ CMath.Sin(radians);
@@ -2356,7 +2596,7 @@ CMatrix = class CMatrix {
     x.Normalize();
     y.Normalize();
 
-    CMatrix.Assign(result, new CMatrix());
+    result.Reset();
     result.Right = x;
     result.Up = y;
     result.Forward = z;
@@ -2588,6 +2828,18 @@ CMatrix = class CMatrix {
     return result;
   }
 
+  Invert()
+  {
+    CMatrix.Invert(this, this);
+    return this;
+  }
+
+  Inverse(dst = new CMatrix())
+  {
+    CMatrix.Invert(this, dst);
+    return dst;
+  }
+
   /// <summary>
   /// Creates a new <see cref="Matrix"/> that contains a multiplication of two matrix.
   /// </summary>
@@ -2743,14 +2995,85 @@ CMatrix = class CMatrix {
     CMatrix.Assign(result, ret);
     return result;
   }
-};
 
-CMatrix.identity = new CMatrix(
-  1, 0, 0, 0,
-  0, 1, 0, 0,
-  0, 0, 1, 0,
-  0, 0, 0, 1
-);
+  /// <summary>
+  /// Compares whether current instance is equal to specified <see cref="Matrix"/>.
+  /// </summary>
+  /// <param name="other">The <see cref="Matrix"/> to compare.</param>
+  /// <returns><c>true</c> if the instances are equal; <c>false</c> otherwise.</returns>
+  /*public*/ /*bool*/ Equals(/*Matrix*/ other)
+  {
+    return (other instanceof CMatrix) && 
+      (this.M11 === other.M11) &&
+      (this.M12 === other.M12) &&
+      (this.M13 === other.M13) &&
+      (this.M14 === other.M14) &&
+      (this.M21 === other.M21) &&
+      (this.M22 === other.M22) &&
+      (this.M23 === other.M23) &&
+      (this.M24 === other.M24) &&
+      (this.M31 === other.M31) &&
+      (this.M32 === other.M32) &&
+      (this.M33 === other.M33) &&
+      (this.M34 === other.M34) &&
+      (this.M41 === other.M41) &&
+      (this.M42 === other.M42) &&
+      (this.M43 === other.M43) &&
+      (this.M44 === other.M44);
+  }
+
+// 		/// <summary>
+// 		/// Gets the hash code of this <see cref="Matrix"/>.
+// 		/// </summary>
+// 		/// <returns>Hash code of this <see cref="Matrix"/>.</returns>
+// 		public override int GetHashCode()
+// 		{
+// 			return X ^ Y;
+// 		}
+
+
+  static get Zero() {
+    return new CMatrix(0, 0);
+  }
+
+
+  /*public*/ /*CMatrix*/ /*operator*/ ["="](/*Matrix*/ p2)
+  {
+    this.X = p2.X;
+    this.Y = p2.Y;
+    return this;
+  }
+
+
+  /*public*/ /*bool*/ /*operator*/ ["=="](/*Matrix*/ p2)
+  {
+    return this.Equals(p2);
+  }
+
+  /*public*/ /*bool*/ /*operator*/ ["==="](/*Matrix*/ p2)
+  {
+    return this.Equals(p2);
+  }
+
+  /*public*/ /*bool*/ /*operator*/ ["!="](/*Matrix*/ p2)
+  {
+    return !this.Equals(p2);
+  }
+
+  /*public*/ static /*bool*/ /*operator*/ ["*"](/*Matrix*/ p1, /*Matrix*/ p2)
+  {
+    return CMatrix.Multiply(p1, p2);
+  }
+  /*public*/ /*bool*/ /*operator*/ ["*"](/*Matrix*/ p2)
+  {
+    return CMatrix.Multiply(this, p2);
+  }
+  /*public*/ /*bool*/ /*operator*/ ["*="](/*Matrix*/ p2)
+  {
+    CMatrix.Multiply(this, p2, this);
+    return this;
+  }
+};
 
 /// <summary>
 /// Defines sprite visual options for mirroring.
@@ -2790,8 +3113,7 @@ CColor = class CColor {
   }
 
   Clone(dst = CColor.New()) {
-    dst.Assign(this);
-    return dst;
+    return dst.Assign(this);
   }
 
   Assign(value) {
@@ -2799,9 +3121,10 @@ CColor = class CColor {
     this.G = value.G;
     this.B = value.B;
     this.A = value.A;
+    return this;
   }
 
-  Reset(r, g, b, a=1.0) {
+  Reset(r=0.0, g=0.0, b=0.0, a=1.0) {
     this.R = r;
     this.G = g;
     this.B = b;
