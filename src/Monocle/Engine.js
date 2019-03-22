@@ -804,194 +804,6 @@ CComponent = class CComponent {
   }
 };
 
-CEnumerator = class CEnumerator {
-  constructor(value) {
-    this._value = value;
-    this._started = false;
-  }
-  get Current()
-  {
-    if (!this._started)
-      throw new CInvalidOperationException("Must call MoveNext() before .Current");
-    if (this._current.done)
-      return undefined;
-    return this._current.value;
-  }
-  MoveNext()
-  {
-    this._current = this._value.next();
-    this._started = true;
-    return !this._current.done;
-  }
-  Reset()
-  {
-    throw new CNotImplementedException();
-  }
-};
-
-CEnumerable = class CEnumerable {
-  constructor(value)
-  {
-    this._value = value;
-  }
-
-  GetEnumerator()
-  {
-    if (this._value instanceof CEnumerable)
-      return this._value.GetEnumerator();
-    if (FisGenerator(this._value))
-      return new CEnumerator(this._value());
-    if (FisFunction(this._value))
-      return new CEnumerator(this._value());
-    if (this._value[Symbol.iterator])
-      return new CEnumerator(this._value[Symbol.iterator]());
-    throw new CArgumentException("Not enumerable.")
-  }
-};
-
-CList = class CList extends CEnumerable {
-  constructor(from)
-  {
-    super(from ? [...from] : []);
-  }
-
-  [Symbol.iterator]()
-  {
-    return this.Iterator;
-  }
-
-  get Iterator()
-  {
-    return this._value.values();
-  }
-
-  At(i)
-  {
-    return this._value[i];
-  }
-
-  Set(index, value)
-  {
-    return (this._value[index] = value);
-  }
-
-  get Count()
-  {
-    return FLength(this._value);
-  }
-
-  Clear()
-  {
-    while (this.Count > 0)
-      this._Pop();
-  }
-
-  Contains(item)
-  {
-    return this._value.indexOf(item) >= 0;
-  }
-
-  _Pop()
-  {
-    if (this.Count == 0)
-      this.ThrowForEmptyList();
-    return this._value.pop();
-  }
-
-  Add(item)
-  {
-    this._value.push(item);
-  }
-
-  AddRange(items)
-  {
-    for (let item of items)
-      this.Add(item);
-  }
-
-  Remove(item)
-  {
-    let idx = this._value.indexOf(item);
-    if (idx >= 0)
-    {
-      return this._value.splice(idx, 1);
-    }
-  }
-
-  Sort(compareFn)
-  {
-    this._value.sort(compareFn);
-  }
-
-  Shuffle(random)
-  {
-    CCalc.Shuffle(this, random);
-    return this;
-  }
-
-  ToArray()
-  {
-    return [...this._value];
-  }
-
-  _ThrowForEmptyList()
-  {
-    throw new CInvalidOperationException("List empty.");
-  }
-};
-
-CStack = class CStack extends CEnumerable {
-  constructor()
-  {
-    super([]);
-  }
-
-  get Count()
-  {
-    return FLength(this._value);
-  }
-
-  Clear()
-  {
-    while (this.Count > 0)
-      this.Pop();
-  }
-
-  Contains(item)
-  {
-    return this._value.indexOf(item) >= 0;
-  }
-
-  Peek()
-  {
-    if (this.Count == 0)
-      this.ThrowForEmptyStack();
-    return this._value[this.Count - 1];
-  }
-
-  Pop()
-  {
-    if (this.Count == 0)
-      this.ThrowForEmptyStack();
-    return this._value.pop();
-  }
-
-  Push(item)
-  {
-    this._value.push(item);
-  }
-
-  ToArray()
-  {
-    return [...this._value];
-  }
-
-  _ThrowForEmptyStack()
-  {
-    throw new CInvalidOperationException("Stack empty.");
-  }
-};
-
 CCoroutine = class CCoroutine extends CComponent {
   constructor(...args)
   {
@@ -1993,44 +1805,9 @@ CBirdNPC = class CBirdNPC extends CActor
 
 CCalc = class CCalc {
 
-  static get Random()
-  {
-    if (CCalc.INTERNAL_Random == null)
-      CCalc.INTERNAL_Random = new CRandom();
-    return CCalc.INTERNAL_Random;
-  }
-
-  static set Random(value)
-  {
-    CCalc.INTERNAL_Random = value;
-    return value;
-  }
-
-  static get RandomStack()
-  {
-    if (CCalc.INTERNAL_RandomStack == null)
-      CCalc.INTERNAL_RandomStack = new CStack();
-    return CCalc.INTERNAL_RandomStack;
-  }
-
-  static PushRandom(newSeed)
-  {
-    if (newSeed == null)
-      newSeed = new CRandom();
-    CCalc.RandomStack.Push(CCalc.Random);
-    CCalc.Random = (newSeed instanceof CRandom) ? newSeed : new CRandom(newSeed);
-  }
-
-  static PopRandom()
-  {
-    CCalc.Random = CCalc.RandomStack.Pop();
-  }
-
-  static RandomUint32() {
-    let array = CCalc.INTERNAL_RandomUint32 || (CCalc.INTERNAL_RandomUint32 = new Uint32Array(1));
-    crypto.getRandomValues(array);
-    return array[0];
-  }
+  static get Random() { return CEnvironment.Random; }
+  static PushRandom(...args) { return CEnvironment.PushRandom(...args); }
+  static PopRandom(...args) { return CEnvironment.PopRandom(...args); }
 
   static At(list, index) {
     return list.At ? list.At(index) : list[index];
@@ -2059,27 +1836,27 @@ CCalc = class CCalc {
 
   static GiveMe(index, ...args)
   {
-    if (index < 0 || index >= CCalc.Length(args))
+    if (index < 0 || index >= this.Length(args))
       throw new CIndexOutOfRangeException();
-    return CCalc.At(args, index);
+    return this.At(args, index);
   }
 
   static Choose(/*Random*/ random, ...args)
   {
-    random = random || CCalc.Random;
-    return CCalc.GiveMe(random.Next(CCalc.Length(args)), ...args);
+    random = random || this.Random;
+    return this.GiveMe(random.Next(this.Length(args)), ...args);
   }
 
   /*public*/ static /*void*/ Shuffle/*<T>*/(/*this List<T>*/ list, /*Random*/ random)
   {
-    random = random || CCalc.Random;
-    /*int*/ let count = CCalc.Length(list);
+    random = random || this.Random;
+    /*int*/ let count = this.Length(list);
     while (--count > 0)
     {
-      /*T*/ let obj = CCalc.At(list, count);
+      /*T*/ let obj = this.At(list, count);
       /*int*/ let index;
-      CCalc.Set(list, count, CCalc.At(list, index = random.Next(count + 1)));
-      CCalc.Set(list, index, obj);
+      this.Set(list, count, this.At(list, index = random.Next(count + 1)));
+      this.Set(list, index, obj);
     }
     return list;
   }
@@ -2087,8 +1864,8 @@ CCalc = class CCalc {
 
   /*public*/ static /*T*/ Approach(/*T*/ val, /*T*/ target, /*float*/ maxMove)
   {
-    if (typeof val === "number") return CCalc.Approach_float(val, target, maxMove);
-    if (val instanceof CVector2) return CCalc.Approach_Vector2(val, target, maxMove);
+    if (typeof val === "number") return this.Approach_float(val, target, maxMove);
+    if (val instanceof CVector2) return this.Approach_Vector2(val, target, maxMove);
     throw new CArgumentException("Invalid argument type.");
   }
 
@@ -2110,8 +1887,8 @@ CCalc = class CCalc {
 
   /*public*/ static /*T*/ Lerp(/*T*/ a, /*T*/ b, /*float*/ t, /*T*/ dst)
   {
-    if (typeof a === "number") return CCalc.Lerp_float(a, b, t, dst);
-    if (a instanceof CVector2) return CCalc.Lerp_Vector2(a, b, t, dst);
+    if (typeof a === "number") return this.Lerp_float(a, b, t, dst);
+    if (a instanceof CVector2) return this.Lerp_Vector2(a, b, t, dst);
     throw new CArgumentException("Invalid argument type.");
   }
 
@@ -2123,8 +1900,8 @@ CCalc = class CCalc {
   static Lerp_Vector2(a, b, t, dst)
   {
     dst = dst || new CVector2();
-    dst.X = CCalc.Lerp_float(a.X, b.X, t);
-    dst.Y = CCalc.Lerp_float(a.Y, b.Y, t);
+    dst.X = this.Lerp_float(a.X, b.X, t);
+    dst.Y = this.Lerp_float(a.Y, b.Y, t);
     return dst;
   }
 
@@ -2135,7 +1912,7 @@ CCalc = class CCalc {
 
     /*public*/ static /*float*/ SineMap(/*float*/ counter, /*float*/ newMin, /*float*/ newMax)
     {
-      return CCalc.Map(/*(float)*/ CMath.Sin(/*(double)*/ counter), -1, 1, newMin, newMax);
+      return this.Map(/*(float)*/ CMath.Sin(/*(double)*/ counter), -1, 1, newMin, newMax);
     }
 
     /*public*/ static /*float*/ ClampedMap(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
@@ -2145,75 +1922,8 @@ CCalc = class CCalc {
 
 };
 
-/**
- * mersenne-twister.js
- * (c) 2013 Ben Lesh
- * http://www.benlesh.com
- * MIT License
- * 
- * generates uniformly distributed positive integers between 0 and 0x100000000 
- * with the MT19937 algorithm. 19937 is the size of the state in bits.
- * 
- * More information about Mersenne Twister can be found on wikipedia
- * http://en.wikipedia.org/wiki/Mersenne_twister
- */
-
-CMersenneTwister = class CMersenneTwister {
-  constructor(seed)
-  {
-    if (seed == null)
-      seed = CCalc.RandomUint32();
-    this.mt = [seed];
-    this.mtLen = 624;
-    this.last32 = 18122433253 & 0xFFFFFFFF;
-    this.index = 0;
-
-    for (let i = 1; i < this.mtLen; i++) {
-        this.mt[i] = this.last32 * ((this.mt[i - 1] ^ (this.mt[i - 1] >>> 30)) >>> 0) + 1;
-    }
-  }
-
-  NextUint32() {
-    if (this.index === 0) {
-      this._Generate();
-    }
-
-    let y = this.mt[this.index];
-    y ^= (y >>> 11);
-    y ^= (y << 7) & 0x9d2c5680;
-    y ^= (y << 15) & 0xefc60000;
-    y ^= y >>> 18;
-    y >>>= 0; 
-
-    this.index = (this.index + 1) % this.mtLen;
-    return y;
-  }
-
-  Next(maxValue) {
-    if (maxValue != null) {
-      return CMath.Floor(this.NextFloat() * maxValue);
-    } else {
-      return this.NextUint32();
-    }
-  }
-
-  NextFloat() {
-    return this.NextUint32() / 0x100000000;
-  }
-
-  _Generate() {
-      let i, y;
-      for (i = 0; i < this.mtLen; i++) {
-          y = ((this.mt[i] & 0x80000000) + (this.mt[(i + 1) % this.mtLen] & 0x7fffffff)) >>> 0;
-          this.mt[i] = (this.mt[(i + 397) % this.mtLen] ^ (y >>> 1)) >>> 0;
-          if (y % 2 !== 0) {
-              this.mt[i] = (this.mt[i] ^ 0x9908b0df) >>> 0;
-          }
-      }
-  }
-};
-
-CRandom = class CRandom extends CMersenneTwister {
+CRandom = DotNet.SetType(["CEnvironment.Random", "Monocle.Random"],
+class CRandom extends DotNet.GetType("System.Runtime.InteropServices.Random") {
 
   /*public*/ /*T*/ Choose_Array/*<T>*/(/*params T[]*/ choices)
   {
@@ -2289,4 +1999,4 @@ CRandom = class CRandom extends CMersenneTwister {
     throw new CNotImplementedException();
     //return new Vector2((float) this.Choose<int>(Calc.shakeVectorOffsets), (float) random.Choose<int>(Calc.shakeVectorOffsets));
   }
-}
+});

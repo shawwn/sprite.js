@@ -75,24 +75,6 @@ CGameTime = class CGameTime {
   }
 };
 
-CMath = class CMath {
-  static get PI() { return Math.PI; }
-  static Abs(x) { return Math.abs(x); }
-  static Sin(x) { return Math.sin(x); }
-  static Cos(x) { return Math.cos(x); }
-  static Tan(x) { return Math.tan(x); }
-  static Asin(x) { return Math.asin(x); }
-  static Acos(x) { return Math.acos(x); }
-  static Atan(x) { return Math.atan(x); }
-  static Sqrt(x) { return Math.sqrt(x); }
-  static Sign(x) { return Math.sign(x); }
-  static Floor(x) { return Math.floor(x); }
-  static Round(x) { return Math.round(x); }
-  static Min(x, y) { return Math.min(x, y); }
-  static Max(x, y) { return Math.max(x, y); }
-  static Clamp(a, b, t) { return Math.max(a, Math.min(b, t)); }
-};
-
 CMathHelper = class CMathHelper {
   /// <summary>
   /// Represents the mathematical constant e(2.71828175).
