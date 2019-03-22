@@ -1245,14 +1245,23 @@ CImage = class CImage extends CGraphicsComponent {
     return this;
   }
 
-  /*Image*/ JustifyOriginAt(/*Vector2*/ at)
+  JustifyOrigin(...args)
+  {
+    switch (args.length) {
+      case 1: { return this.JustifyOrigin1(...args); } break;
+      case 2: { return this.JustifyOrigin2(...args); } break;
+      default: throw new CArgumentException("Invalid argument count.");
+    }
+  }
+
+  /*Image*/ JustifyOrigin1(/*Vector2*/ at)
   {
     this.Origin.X = this.Width * at.X;
     this.Origin.Y = this.Height * at.Y;
     return this;
   }
 
-  /*Image*/ JustifyOriginXY(/*float*/ x, /*float*/ y)
+  /*Image*/ JustifyOrigin2(/*float*/ x, /*float*/ y)
   {
     this.Origin.X = this.Width * x;
     this.Origin.Y = this.Height * y;

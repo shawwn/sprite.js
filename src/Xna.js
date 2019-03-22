@@ -794,7 +794,7 @@ CViewport = class CViewport {
 
   constructor(...args)
   {
-    switch(args.length) {
+    switch (args.length) {
       case 0: this.CViewport0(...args); break;
       case 1: this.CViewport1(...args); break;
       case 4: this.CViewport4(...args); break;
