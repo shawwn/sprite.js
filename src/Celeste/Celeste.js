@@ -220,3 +220,85 @@ CCeleste = class CCeleste extends CEngine {
   }
 };
 
+
+CCutsceneEntity = class CCutsceneEntity extends CEntity {
+  /*public*/ /*CutsceneEntity*/ constructor(/*bool*/ fadeInOnSkip = true, /*bool*/ endingChapterAfter = false)
+  {
+    super();
+    this.RemoveOnSkipped = true;
+    this.WasSkipped = false;
+    this.Running = false;
+
+    this.FadeInOnSkip = fadeInOnSkip;
+    this.EndingChapterAfter = endingChapterAfter;
+    this.Level = null;
+  }
+
+  /*public*/ /*override*/ /*void*/ Added(/*Scene*/ scene)
+  {
+    super.Added(scene);
+    this.Level = scene /*as*/ /*Level*/;
+    this.Start();
+  }
+
+  /*public*/ /*void*/ Start()
+  {
+    this.Running = true;
+    this.Level.StartCutscene(new Action<Level>(this.SkipCutscene), this.FadeInOnSkip, this.EndingChapterAfter);
+    this.OnBegin(this.Level);
+  }
+
+  /*public*/ /*override*/ /*void*/ Update()
+  {
+    if (this.Level.RetryPlayerCorpse != null)
+      this.Active = false;
+    else
+      super.Update();
+  }
+
+  /*private*/ /*void*/ SkipCutscene(/*Level*/ level)
+  {
+    this.WasSkipped = true;
+    this.EndCutscene(level, this.RemoveOnSkipped);
+  }
+
+  /*public*/ /*void*/ EndCutscene(/*Level*/ level, /*bool*/ removeSelf = true)
+  {
+    this.Running = false;
+    this.OnEnd(level);
+    level.EndCutscene();
+    if (!removeSelf)
+      return;
+    this.RemoveSelf();
+  }
+
+  /*public*/ /*abstract*/ /*void*/ OnBegin(/*Level*/ level)
+  {
+    throw new CNotImplementedException();
+  }
+
+  /*public*/ /*abstract*/ /*void*/ OnEnd(/*Level*/ level)
+  {
+    throw new CNotImplementedException();
+  }
+
+  /*public*/ static /*IEnumerator*/ *CameraTo(
+    /*Vector2*/ target,
+    /*float*/ duration,
+    /*CEase.Easer*/ ease = null,
+    /*float*/ delay = 0.0)
+  {
+    if (ease == null)
+      ease = CEase.CubeInOut;
+    if (/*(double)*/ delay > 0.0)
+      yield delay;
+    /*Level*/ let level = CEngine.Scene /*as*/ /*Level*/;
+    /*Vector2*/ let from = level.Camera.Position;
+    for (/*float*/ let p = 0.0; /*(double)*/ p < 1.0; p += CEngine.DeltaTime / duration)
+    {
+      level.Camera.Position = CCalc.Lerp(from, target, ease(p)); //from["+"](target["-"](from))["*"](ease(p));
+      yield null;
+    }
+  }
+}
+

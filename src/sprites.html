@@ -365,14 +365,33 @@ fontSheet().then(x => {window.font = x})
     return r;
   }
 
-window.hookUpdate = window.hookUpdate || function (time) {
-}
+  window.OnUpdate = window.OnUpdate || new EventHandler();
+
+  function ZoomTo(level, duration = 5, ease = null) {
+    let hookTime = 0;
+    let hookEnd = duration;
+    let zoomFrom = window.zoom;
+    let zoomTo = level;
+    ease = ease || CEase.CubeInOut;
+    if (window.Zooming) {
+      window.OnUpdate["-="](window.Zooming);
+      window.Zooming = null;
+    }
+    window.OnUpdate["+="](window.Zooming = () => {
+      hookTime += CEngine.DeltaTime;
+      window.zoom = CCalc.Lerp(zoomFrom, zoomTo, ease( CMath.Clamp(0,1,CCalc.YoYo(hookTime/hookEnd)))); 
+      if (hookTime > hookEnd) {
+        window.OnUpdate.RemoveCurrent();
+        window.Zooming = null;
+      }
+    });
+  }
 
   function update(time) {
     CEngine.Camera.Bounds = CEngine.Instance.Window.ClientBounds;
     CEngine.Camera.CenterOrigin();
     time *= 0.001;
-    window.hookUpdate(time);
+    window.OnUpdate(CEngine, time);
 
     const radius = 20;
     const orbitSpeed = time * 0.1;
@@ -401,7 +420,8 @@ window.hookUpdate = window.hookUpdate || function (time) {
       m4.multiply(projection, view, viewProjection);
     } else if (true) {
       let cam = CEngine.Camera;
-      cam.Zoom = CCalc.Lerp(cam.Zoom, window.zoom, 1/60.0);
+      //cam.Zoom = CCalc.Lerp(cam.Zoom, window.zoom, 1/60.0);
+      cam.Zoom = window.zoom;
       cam.Approach(window.look, 1/60.0);
       //const w = gl.canvas.width/gl.canvas.width;
       //const h = gl.canvas.height/gl.canvas.height;
@@ -654,7 +674,7 @@ CCeleste = class CCeleste extends CEngine {
       this.UpdateCount = 0;
       this.FPSTicks = CTimeSpan.Zero;
     }
-    if (gameTime.TotalGameTime.TotalSeconds > 100.0) {
+    if (gameTime.TotalGameTime.TotalSeconds > (window.Lifetime||Infinity)) {
       this.Exit();
     }
   }

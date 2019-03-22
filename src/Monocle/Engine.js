@@ -808,14 +808,14 @@ CCoroutine = class CCoroutine extends CComponent {
   constructor(...args)
   {
     switch (args.length) {
-      case 2: { super(true, false); this._preconstructor(); this._constructor2(...args); } break;
-      case 1: { super(false, false); this._preconstructor(); this._constructor1(...args); } break;
-      case 0: { super(false, false); this._preconstructor(); this._constructor1(...args); } break;
+      case 0: // fallthrough
+      case 1: { super(false, false); this._CCoroutine_Initialize(); this._CCoroutine1(...args); } break;
+      case 2: { super(true, false);  this._CCoroutine_Initialize(); this._CCoroutine2(...args); } break;
       default: throw new CArgumentException("Invalid argument count.");
     }
   }
 
-  _preconstructor()
+  _CCoroutine_Initialize()
   {
     this.RemoveOnComplete = true;
     this.UseRawDeltaTime = false;
@@ -825,14 +825,14 @@ CCoroutine = class CCoroutine extends CComponent {
     this.Finished = false;
   }
 
-  _constructor2(/*IEnumerator*/ functionCall, /*bool*/ removeOnComplete = true)
+  _CCoroutine2(/*IEnumerator*/ functionCall, /*bool*/ removeOnComplete = true)
   {
     this.enumerators = new CStack/*<IEnumerator>*/();
     this.enumerators.Push(FasEnumerator(functionCall));
     this.RemoveOnComplete = removeOnComplete;
   }
 
-  _constructor1(/*bool*/ removeOnComplete = true)
+  _CCoroutine1(/*bool*/ removeOnComplete = true)
   {
     this.RemoveOnComplete = removeOnComplete;
     this.enumerators = new CStack/*<IEnumerator>*/();
@@ -1905,20 +1905,28 @@ CCalc = class CCalc {
     return dst;
   }
 
-    /*public*/ static /*float*/ Map(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
-    {
-      return /*(float)*/ ((/*(double)*/ val - /*(double)*/ min) / (/*(double)*/ max - /*(double)*/ min) * (/*(double)*/ newMax - /*(double)*/ newMin)) + newMin;
-    }
 
-    /*public*/ static /*float*/ SineMap(/*float*/ counter, /*float*/ newMin, /*float*/ newMax)
-    {
-      return this.Map(/*(float)*/ CMath.Sin(/*(double)*/ counter), -1, 1, newMin, newMax);
-    }
+  /*public*/ static /*float*/ YoYo(/*float*/ value)
+  {
+    if (value <= 0.5)
+      return value * 2;
+    return (1.0 - (value - 0.5) * 2.0);
+  }
 
-    /*public*/ static /*float*/ ClampedMap(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
-    {
-      return CMathHelper.Clamp(/*(float)*/ ((/*(double)*/ val - /*(double)*/ min) / (/*(double)*/ max - /*(double)*/ min)), 0.0, 1) * (newMax - newMin) + newMin;
-    }
+  /*public*/ static /*float*/ Map(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
+  {
+    return /*(float)*/ ((/*(double)*/ val - /*(double)*/ min) / (/*(double)*/ max - /*(double)*/ min) * (/*(double)*/ newMax - /*(double)*/ newMin)) + newMin;
+  }
+
+  /*public*/ static /*float*/ SineMap(/*float*/ counter, /*float*/ newMin, /*float*/ newMax)
+  {
+    return this.Map(/*(float)*/ CMath.Sin(/*(double)*/ counter), -1, 1, newMin, newMax);
+  }
+
+  /*public*/ static /*float*/ ClampedMap(/*float*/ val, /*float*/ min, /*float*/ max, /*float*/ newMin = 0.0, /*float*/ newMax = 1)
+  {
+    return CMathHelper.Clamp(/*(float)*/ ((/*(double)*/ val - /*(double)*/ min) / (/*(double)*/ max - /*(double)*/ min)), 0.0, 1) * (newMax - newMin) + newMin;
+  }
 
 };
 
@@ -2000,3 +2008,115 @@ class CRandom extends DotNet.GetType("System.Runtime.InteropServices.Random") {
     //return new Vector2((float) this.Choose<int>(Calc.shakeVectorOffsets), (float) random.Choose<int>(Calc.shakeVectorOffsets));
   }
 });
+
+CEase = class CEase
+{
+  /*public static readonly CEase.Easer*/ static Linear(t) { return t; }
+  /*public static readonly CEase.Easer*/ static SineIn(t) { return (-CMath.Cos(1.57079637050629 * t) + 1.0); }
+  /*public static readonly CEase.Easer*/ static SineOut(t) { return CMath.Sin(1.57079637050629 * t); }
+  /*public static readonly CEase.Easer*/ static SineInOut(t) { return (-CMath.Cos(3.14159274101257 * t) / 2.0 + 0.5); }
+  /*public static readonly CEase.Easer*/ static QuadIn(t) { return t * t; }
+  /*public static readonly CEase.Easer*/ static get QuadOut() { return CEase.Invert(CEase.QuadIn); }
+  /*public static readonly CEase.Easer*/ static get QuadInOut() { return CEase.Follow(CEase.QuadIn, CEase.QuadOut); }
+  /*public static readonly CEase.Easer*/ static CubeIn(t) { return t * t * t; }
+  /*public static readonly CEase.Easer*/ static get CubeOut() { return CEase.Invert(CEase.CubeIn); }
+  /*public static readonly CEase.Easer*/ static get CubeInOut() { return CEase.Follow(CEase.CubeIn, CEase.CubeOut); }
+  /*public static readonly CEase.Easer*/ static QuintIn(t) { return t * t * t * t * t; }
+  /*public static readonly CEase.Easer*/ static get QuintOut() { return CEase.Invert(CEase.QuintIn); }
+  /*public static readonly CEase.Easer*/ static get QuintInOut() { return CEase.Follow(CEase.QuintIn, CEase.QuintOut); }
+  /*public static readonly CEase.Easer*/ static ExpoIn(t) { return CMath.Pow(2.0, 10.0 * (t - 1.0)); }
+  /*public static readonly CEase.Easer*/ static get ExpoOut() { return CEase.Invert(CEase.ExpoIn); }
+  /*public static readonly CEase.Easer*/ static get ExpoInOut() { return CEase.Follow(CEase.ExpoIn, CEase.ExpoOut); }
+  /*public static readonly CEase.Easer*/ static BackIn(t) { return (t * t * (2.70158004760742 * t - 1.70158004760742)); }
+  /*public static readonly CEase.Easer*/ static get BackOut() { return CEase.Invert(CEase.BackIn); }
+  /*public static readonly CEase.Easer*/ static get BackInOut() { return CEase.Follow(CEase.BackIn, CEase.BackOut); }
+  /*public static readonly CEase.Easer*/ static BigBackIn(t) { return (t * t * (4.0 * t - 3.0)); }
+  /*public static readonly CEase.Easer*/ static get BigBackOut() { return CEase.Invert(CEase.BigBackIn); }
+  /*public static readonly CEase.Easer*/ static get BigBackInOut() { return CEase.Follow(CEase.BigBackIn, CEase.BigBackOut); }
+  /*public static readonly CEase.Easer*/ static ElasticIn(t)
+  {
+    /*float*/ let num1 = t * t;
+    /*float*/ let num2 = num1 * t;
+    return (33.0 * num2 * num1 + -59.0 * num1 * num1 + 32.0 * num2 + -5.0 * num1);
+  }
+  /*public static readonly CEase.Easer*/ static ElasticOut (t)
+  {
+    /*float*/ let num1 = t * t;
+    /*float*/ let num2 = num1 * t;
+    return (33.0 * num2 * num1 + -106.0 * num1 * num1 + 126.0 * num2 + -67.0 * num1 + 15.0 * t);
+  }
+  /*public*/ /*static*/ /*readonly*/ /*CEase.Easer*/ static get ElasticInOut() { return CEase.Follow(CEase.ElasticIn, CEase.ElasticOut); }
+  /*public*/ /*static*/ /*readonly*/ /*CEase.Easer*/ static BounceIn (t)
+  {
+    t = 1 - t;
+    if (t < 0.363636374473572)
+      return (1.0 - 121.0 / 16.0 * t * t);
+    if (t < 0.727272748947144)
+      return (1.0 - (121.0 / 16.0 * (t - 0.545454561710358) * (t - 0.545454561710358) + 0.75));
+    if (t < 0.909090936183929)
+      return (1.0 - (121.0 / 16.0 * (t - 0.818181812763214) * (t - 0.818181812763214) + 15.0 / 16.0));
+    return (1.0 - (121.0 / 16.0 * (t - 0.954545438289642) * (t - 0.954545438289642) + 63.0 / 64.0));
+  }
+  /*public*/ /*static*/ /*readonly*/ /*CEase.Easer*/ static BounceOut (t)
+  {
+    if (t < 0.363636374473572)
+      return 121 / 16 * t * t;
+    if (t < 0.727272748947144)
+      return (121.0 / 16.0 * (t - 0.545454561710358) * (t - 0.545454561710358) + 0.75);
+    if (t < 0.909090936183929)
+      return (121.0 / 16.0 * (t - 0.818181812763214) * (t - 0.818181812763214) + 15.0 / 16.0);
+    return (121.0 / 16.0 * (t - 0.954545438289642) * (t - 0.954545438289642) + 63.0 / 64.0);
+  }
+  /*public*/ /*static*/ /*readonly*/ /*CEase.Easer*/ static BounceInOut (t)
+  {
+    if (t < 0.5)
+    {
+      t = (1.0 - t * 2.0);
+      if (t < 0.363636374473572)
+        return ((1.0 - 121.0 / 16.0 * t * t) / 2.0);
+      if (t < 0.727272748947144)
+        return ((1.0 - (121.0 / 16.0 * (t - 0.545454561710358) * (t - 0.545454561710358) + 0.75)) / 2.0);
+      if (t < 0.909090936183929)
+        return ((1.0 - (121.0 / 16.0 * (t - 0.818181812763214) * (t - 0.818181812763214) + 15.0 / 16.0)) / 2.0);
+      return ((1.0 - (121.0 / 16.0 * (t - 0.954545438289642) * (t - 0.954545438289642) + 63.0 / 64.0)) / 2.0);
+    }
+    t = (t * 2.0 - 1.0);
+    if (t < 0.363636374473572)
+      return (121.0 / 16.0 * t * t / 2.0 + 0.5);
+    if (t < 0.727272748947144)
+      return ((121.0 / 16.0 * (t - 0.545454561710358) * (t - 0.545454561710358) + 0.75) / 2.0 + 0.5);
+    if (t < 0.909090936183929)
+      return ((121.0 / 16.0 * (t - 0.818181812763214) * (t - 0.818181812763214) + 15.0 / 16.0) / 2.0 + 0.5);
+    return ((121.0 / 16.0 * (t - 0.954545438289642) * (t - 0.954545438289642) + 63.0 / 64.0) / 2.0 + 0.5);
+  }
+  static get B1() { return 0.3636364; }
+  static get B2() { return 0.7272727; }
+  static get B3() { return 0.5454546; }
+  static get B4() { return 0.9090909; }
+  static get B5() { return 0.8181818; }
+  static get B6() { return 0.9545454; }
+
+  /*public*/ static /*CEase.Easer*/ Invert(/*CEase.Easer*/ easer)
+  {
+    return /*(CEase.Easer)*/ (t => 1 - easer(1 - t));
+  }
+
+  /*public*/ static /*CEase.Easer*/ Follow(/*CEase.Easer*/ first, /*CEase.Easer*/ second)
+  {
+    return /*(CEase.Easer)*/ (t =>
+    {
+      if (t > 0.5)
+        return (second((t * 2.0 - 1.0)) / 2.0 + 0.5);
+      return first(t * 2) / 2;
+    });
+  }
+
+  /*public*/ static /*float*/ UpDown(/*float*/ eased)
+  {
+    if (eased <= 0.5)
+      return eased * 2;
+    return (1.0 - (eased - 0.5) * 2.0);
+  }
+
+  //public delegate float Easer(float t);
+}

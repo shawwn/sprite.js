@@ -102,6 +102,7 @@ CMath = class CMath {
   static Min(x, y) { return Math.min(x, y); }
   static Max(x, y) { return Math.max(x, y); }
   static Clamp(a, b, t) { return Math.max(a, Math.min(b, t)); }
+  static Pow(x,y) { return Math.pow(x,y); }
 };
 
 
@@ -1009,10 +1010,24 @@ EventHandler.prototype["-="] = function Rem(f, me) {
   return this;
 }
 
+EventHandler.prototype.RemoveCurrent = function() {
+  if (this.Current != null)
+  {
+    this["-="](this.Current.f, this.Current.me);
+    this.Current = null;
+  }
+}
+
 function eventHandlerTag(me, sender, args) {
   //console.log('eventHandlerTag', me, sender, args);
   for (let x of me.handlers) {
-    x.f.call(x.me, sender, args);
+    let was = me.Current;
+    try {
+      me.Current = x;
+      x.f.call(x.me, sender, args);
+    } finally {
+      me.Current = was;
+    }
   }
 }
 
