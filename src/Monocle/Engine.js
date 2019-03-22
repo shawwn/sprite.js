@@ -1284,6 +1284,12 @@ CDraw = class CDraw {
     CDraw.Pixel = new CMTexture(parent, 1, 1, 1, 1);
     CDraw.Particle = new CMTexture(parent, 1, 1, 1, 1);
     CDraw.Font = new CMTexture(CVirtualContent.CreateTexture("../tests/celeste/Monocle/MonocleDefault.png"));
+    CDraw.Font.Width = 128;
+    CDraw.Font.Height = 128;
+    CDraw.Font.Texture.Width = 128;
+    CDraw.Font.Texture.Height = 128;
+    CDraw.Font.ClipRect.Assign(new CRectangle(0,0,128,128));
+    CDraw.Font.SetUtil();
   }
 };
 
