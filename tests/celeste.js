@@ -62,7 +62,7 @@ class CelesteFrames {
 
 function celesteInit(scene, layer, callback) {
   celeste = (typeof celeste === "undefined") ? {} : celeste;
-  load("./celeste/Graphics/sprites.json", (x) => {
+  load("./celeste/Graphics/Sprites.json", (x) => {
     celeste.sprites = JSON.parse(x);
     celeste.player = celeste.player || {};
     celeste.player = Object.assign(celeste.player, Object.assign.apply(null, celeste.sprites.Sprites.player.Loop.map((v, i) => { return {[v._attributes.id]: Object.assign({type: "Loop"}, v._attributes)} })));
