@@ -8078,6 +8078,21 @@ function urlIsSameOrigin(url) {
 function setToAnonymousIfUndefinedAndURLIsNotSameOrigin(url, crossOrigin) {
   return crossOrigin === undefined && !urlIsSameOrigin(url) ? 'anonymous' : crossOrigin;
 }
+
+function shouldRequestCORS(url) {
+  try {
+    return (new URL(url)).origin !== window.location.origin
+  } catch (e) {
+    return (typeof url === 'string') && url.length > 0 && url[0] === '.';
+  }
+}
+
+function requestCORSIfNotSameOrigin(img, url) {
+  if (shouldRequestCORS(url)) {
+    img.crossOrigin = "";
+  }
+}
+
 /**
  * Loads an image
  * @param {string} url url to image
@@ -8124,6 +8139,7 @@ function loadImage(url, crossOrigin, callback) {
 
     img.addEventListener('error', onError);
     img.addEventListener('load', onLoad);
+    requestCORSIfNotSameOrigin(img, url);
     img.src = url;
     return img;
   } else if (typeof ImageBitmap !== 'undefined') {

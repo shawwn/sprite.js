@@ -48,6 +48,19 @@ browser_specific_runned = false,
 // global z-index
 zindex = 1;
 
+function shouldRequestCORS(url) {
+  try {
+    return (new URL(url)).origin !== window.location.origin
+  } catch (e) {
+    return (typeof url === 'string') && url.length > 0 && url[0] === '.';
+  }
+}
+
+function requestCORSIfNotSameOrigin(img, url) {
+  if (shouldRequestCORS(url)) {
+    img.crossOrigin = "";
+  }
+}
 
 //IE 8 fix help functions
 function _addEventListener(element, type,listener,useCapture){
@@ -330,6 +343,7 @@ Scene.prototype.loadImages = function loadImages(images, callback) {
             div.innerHTML = 'Error loading image ' + src;
         }, false);
 
+        requestCORSIfNotSameOrigin(img, src);
         img.src = src;
     }
 
@@ -948,6 +962,7 @@ Sprite.prototype.loadImg = function (src, resetSize) {
         imageReady();
     else {
         _addEventListener(this.img, 'load', imageReady, false);
+        requestCORSIfNotSameOrigin(this.img, src);
         this.img.src = src;
     }
     return this;
