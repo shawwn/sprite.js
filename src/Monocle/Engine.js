@@ -852,6 +852,16 @@ CList = class CList extends CEnumerable {
     super([]);
   }
 
+  [Symbol.iterator]()
+  {
+    return this.Iterator;
+  }
+
+  get Iterator()
+  {
+    return this._value.values();
+  }
+
   At(i)
   {
     return this._value[i];
@@ -883,6 +893,26 @@ CList = class CList extends CEnumerable {
   Add(item)
   {
     this._value.push(item);
+  }
+
+  AddRange(items)
+  {
+    for (let item of items)
+      this.Add(item);
+  }
+
+  Remove(item)
+  {
+    let idx = this._value.indexOf(item);
+    if (idx >= 0)
+    {
+      return this._value.splice(idx, 1);
+    }
+  }
+
+  Sort(compareFn)
+  {
+    this._value.sort(compareFn);
   }
 
   ToArray()
@@ -1489,6 +1519,206 @@ CCamera = class CCamera {
       this.Position["+="](CVector2.Normalize(vector2)["*"](maxDistance));
     else
       this.Position["+="](vector2);
+  }
+};
+
+CEntityList = class CEntityList
+{
+  static CompareDepth(a, b)
+  {
+    return CMath.Sign(b.actualDepth - a.actualDepth);
+  }
+
+  constructor(/*Scene*/ scene)
+  {
+    this.Scene = scene;
+    this.entities = new CList();
+    this.toAdd = new CList();
+    this.toAwake = new CList();
+    this.toRemove = new CList();
+    this.current = new CList();
+    this.adding = new CList();
+    this.removing = new CList();
+    this.unsorted = false;
+  }
+
+  MarkUnsorted()
+  {
+    this.unsorted = true;
+  }
+
+  UpdateLists()
+  {
+    if (this.toAdd.Count > 0)
+    {
+      for (let index = 0; index < this.toAdd.Count; ++index)
+      {
+        let entity = this.toAdd.At(index);
+        if (!this.current.Contains(entity))
+        {
+          this.current.Add(entity);
+          this.entities.Add(entity);
+          if (this.Scene != null)
+          {
+            this.Scene.TagLists.EntityAdded(entity);
+            this.Scene.Tracker.EntityAdded(entity);
+            entity.Added(this.Scene);
+          }
+        }
+      }
+      this.unsorted = true;
+    }
+    if (this.toRemove.Count > 0)
+    {
+      for (let index = 0; index < this.toRemove.Count; ++index)
+      {
+        let entity = this.toRemove.At(index);
+        if (this.current.Contains(entity))
+        {
+          this.current.Remove(entity);
+          this.entities.Remove(entity);
+          if (this.Scene != null)
+          {
+            entity.Removed(this.Scene);
+            this.Scene.TagLists.EntityRemoved(entity);
+            this.Scene.Tracker.EntityRemoved(entity);
+            CEngine.Pooler.EntityRemoved(entity);
+          }
+        }
+      }
+      this.toRemove.Clear();
+      this.removing.Clear();
+    }
+    if (this.unsorted)
+    {
+      this.unsorted = false;
+      this.entities.Sort(CEntityList.CompareDepth);
+    }
+    if (this.toAdd.Count <= 0)
+      return;
+    this.toAwake.AddRange(this.toAdd);
+    this.toAdd.Clear();
+    this.adding.Clear();
+    for (let entity of this.toAwake)
+    {
+      if (entity.Scene === this.Scene)
+        entity.Awake(this.Scene);
+    }
+    this.toAwake.Clear();
+  }
+
+  [Symbol.iterator]()
+  {
+    return this.entities.Iterator;
+  }
+
+  Add(/*Entity*/ entity)
+  {
+    if (this.adding.Contains(entity) || this.current.Contains(entity))
+      return;
+    this.adding.Add(entity);
+    this.toAdd.Add(entity);
+  }
+
+  Remove(/*Entity*/ entity)
+  {
+    if (this.removing.Contains(entity) || !this.current.Contains(entity))
+      return;
+    this.removing.Add(entity);
+    this.toRemove.Add(entity);
+  }
+
+  get Count()
+  {
+    return this.entities.Count;
+  }
+
+  At(/*int*/ index)
+  {
+    if (index < 0 || index >= this.entities.Count)
+      throw new CIndexOutOfRangeException();
+    return this.entities.At(index);
+  }
+
+  /*int*/ AmountOf(T)
+  {
+    /*int*/ let num = 0;
+    for (let entity of this.entities)
+    {
+      if (entity instanceof T)
+        ++num;
+    }
+    return num;
+  }
+
+  /*Entity*/ FindFirst(T)
+  {
+    for (let entity of this.entities)
+    {
+      if (entity instanceof T)
+        return entity;
+    }
+  }
+
+  /*List<T>*/ FindAll(T)
+  {
+    let objList = new CList();
+    for (let entity of this.entities)
+    {
+      if (entity instanceof T)
+        objList.Add(entity);
+    }
+    return objList;
+  }
+
+  void With(T, /*Action<T>*/ action)
+  {
+    for (let entity of this.entities)
+    {
+      if (entity instanceof T)
+        action(entity);
+    }
+  }
+
+  ToArray()
+  {
+    return [...this];
+  }
+
+  Update()
+  {
+    for (let entity of this.entities)
+    {
+      if (entity.Active)
+        entity.Update();
+    }
+  }
+
+  Render()
+  {
+    for (let entity of this.entities)
+    {
+      if (entity.Visible)
+        entity.Render();
+    }
+  }
+
+  DebugRender(/*Camera*/ camera)
+  {
+    for (let entity of this.entities)
+      entity.DebugRender(camera);
+  }
+
+  HandleGraphicsReset()
+  {
+    for (let entity of this.entities)
+      entity.HandleGraphicsReset();
+  }
+
+  HandleGraphicsCreate()
+  {
+    for (let entity of this.entities)
+      entity.HandleGraphicsCreate();
   }
 };
 
