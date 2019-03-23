@@ -28,6 +28,8 @@
 
     <link href="/resources/images/twgljs-icon.png" rel="shortcut icon" type="image/png">
 
+		<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+
     <title>twgl.js - textures</title>
     <style>
       body {
@@ -52,6 +54,9 @@
     <canvas id="c"></canvas>
     <div id="b"><a href="http://twgljs.org">twgl.js</a> - textures</div>
   </body>
+  <script>
+    $('body').on('contextmenu', '#c', function(e){ return false; });
+  </script>
   <script id="one-point-vs" type="notjs">
 uniform mat4 u_worldViewProjection;
 
@@ -365,7 +370,86 @@ fontSheet().then(x => {window.font = x})
     return r;
   }
 
+  function WasKeyUp(key) { return !CInput.Keyboard.PreviousState.isKeyDown(key); }
+  function IsKeyUp(key) { return !CInput.Keyboard.CurrentState.isKeyDown(key); }
+  function WasKeyDown(key) { return !WasKeyUp(key); }
+  function IsKeyDown(key) { return !IsKeyUp(key); }
+  function IsKeyPressed(key) { return IsKeyDown(key) && !WasKeyDown(key); }
+
+  function WasMouseButtonUp(button) { return CInput.Mouse.PreviousState.Buttons[button || 0] === 0; }
+  function IsMouseButtonUp(button) { return CInput.Mouse.CurrentState.Buttons[button || 0] === 0; }
+  function WasMouseButtonDown(button) { return !WasMouseButtonUp(button); }
+  function IsMouseButtonDown(button) { return !IsMouseButtonUp(button); }
+
+  function IsMouseButtonPressed(button) { return IsMouseButtonDown(button) && !WasMouseButtonDown(button); }
+  function IsMouseButtonReleased(button) { return IsMouseButtonUp(button) && !WasMouseButtonUp(button); }
+
+  function GetMousePosition() {
+    return CInput.Mouse.CurrentState.Position;
+  }
+
+  function GetPreviousMousePosition() {
+    return CInput.Mouse.PreviousState.Position;
+  }
+
+  function GetMouseMovement() {
+    let delta = GetMousePosition()
+    delta["-="](GetPreviousMousePosition());
+    return delta;
+  }
+
+  function GetMousePositionState() {
+    return {
+      Delta: GetMouseMovement(),
+      Current: GetMousePosition(),
+      Previous: GetPreviousMousePosition(),
+    }
+  }
+
   window.OnUpdate = window.OnUpdate || new EventHandler();
+  window.OnMouseMove = window.OnMouseMove || new EventHandler();
+
+  function LogIfNotZero(x, ...args) {
+    if (x != null && x !== 0) {
+      console.log(x, ...args);
+    }
+  }
+
+  window.OnUpdate["+="](() => { 
+    if (IsKeyPressed(CInput.Keys.A))
+      console.log('A');
+    for (let i = 0, n = CInput.Mouse.CurrentState.Buttons.length; i < n; i++) {
+      if (IsMouseButtonPressed(i))
+        console.log('mouseDown', i);
+      if (IsMouseButtonReleased(i))
+        console.log('mouseUp', i);
+    }
+
+    /*
+    LogIfNotZero(CInput.Mouse.CurrentState.Zoom, "Zoom");
+    LogIfNotZero(CInput.Mouse.CurrentState.Swipe, "Swipe");
+    LogIfNotZero(CInput.Mouse.CurrentState.Wheel, "Wheel");
+    LogIfNotZero(CInput.Mouse.CurrentState.Axis, "Axis");
+    */
+    let zoomDelta = 0.05 * CInput.Mouse.CurrentState.Zoom;
+    window.zoom += zoomDelta;
+    window.zoomFocus = CInput.Mouse.CurrentState.Position;
+
+    window.look.X += 16.0 * CInput.Mouse.CurrentState.Swipe / window.zoom;
+    window.look.Y += 16.0 * CInput.Mouse.CurrentState.Wheel / window.zoom;
+  });
+
+  window.OnUpdate["+="](() => { 
+    let state = GetMousePositionState();
+    if (state.Delta.Length() > 0) {
+      window.OnMouseMove(null, state);
+    }
+  })
+
+  window.OnMouseMove["+="]((sender, args) => {
+    let pos = CEngine.Camera.ScreenToCamera(args.Current);
+    console.log(args.Delta.X, args.Delta.Y, args.Current.X, args.Current.Y, pos.X, pos.Y);
+  })
 
   function ZoomTo(level, duration = 5, ease = null) {
     let hookTime = 0;
@@ -421,8 +505,23 @@ fontSheet().then(x => {window.font = x})
     } else if (true) {
       let cam = CEngine.Camera;
       //cam.Zoom = CCalc.Lerp(cam.Zoom, window.zoom, 1/60.0);
-      cam.Zoom = window.zoom;
-      cam.Approach(window.look, 1/60.0);
+      let pos1 = cam.ScreenToCamera(window.zoomFocus);
+      cam.ZoomSnap = either(cam.ZoomSnap, 0.3);
+      if (CMath.Abs(window.zoom - 1) < cam.ZoomSnap && CMath.Sign(window.zoom - 1) === CMath.Sign(window.zoom - cam.Zoom)) {
+        cam.Zoom = 1;
+      } else if (window.zoom < 1) {
+        cam.Zoom = CMath.Pow(CMathHelper.E, -0.3 * CCalc.Map(window.zoom, 1, 0, 0, 1));
+      } else {
+        cam.Zoom = window.zoom;
+      }
+      let pos2 = cam.ScreenToCamera(window.zoomFocus);
+      window.look["-="](pos2["-"](pos1));
+      cam.Round = cam.Zoom === 1;
+      if (false) {
+        cam.Approach(window.look, 1/60.0);
+      } else {
+        cam.Position = window.look;
+      }
       //const w = gl.canvas.width/gl.canvas.width;
       //const h = gl.canvas.height/gl.canvas.height;
       const w = gl.canvas.width;
@@ -462,6 +561,11 @@ fontSheet().then(x => {window.font = x})
         color = window.color;
       }
     }
+    if (IsMouseButtonDown(0)) { color = CColor.Red.Array(); }
+    if (IsMouseButtonDown(1)) { color = CColor.Green.Array(); }
+    if (IsMouseButtonDown(2)) { color = CColor.Blue.Array(); }
+    if (IsMouseButtonDown(3)) { color = CColor.DarkRed.Array(); }
+    if (IsMouseButtonDown(4)) { color = CColor.DarkBlue.Array(); }
 
     window.objects.forEach(function(obj) {
       const uni = obj.uniforms;
@@ -556,6 +660,7 @@ CCeleste = class CCeleste extends CEngine {
     super.LoadContent();
     CEngine.Camera = new CCamera();
     window.zoom = 1;
+    window.zoomFocus = CVector2.Zero;
     window.look = new CVector2(-50, -50)
 
     // This is soley to make it easy to pick textures at random

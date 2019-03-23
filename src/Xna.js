@@ -3165,6 +3165,17 @@ CColor = class CColor {
     this.A = a;
   }
 
+  Array(dst)
+  {
+    dst = dst || new Float32Array(4);
+    dst[0] = this.R;
+    dst[1] = this.G;
+    dst[2] = this.B;
+    dst[3] = this.A;
+    return dst;
+  }
+
+
   get IsClamped() {
     var r = this._value._rgb[0];
     var g = this._value._rgb[1];
@@ -3223,6 +3234,22 @@ CColor = class CColor {
 
   static get DarkRed() {
     return CColor.FromRGBA(139.0/255.0,0,0,1);
+  }
+
+  static get Green() {
+    return CColor.FromRGBA(0,1,0,1);
+  }
+
+  static get DarkGreen() {
+    return CColor.FromRGBA(0,139.0/255.0,0,1);
+  }
+
+  static get Blue() {
+    return CColor.FromRGBA(0,0,1,1);
+  }
+
+  static get DarkBlue() {
+    return CColor.FromRGBA(0,0,139.0/255.0,1);
   }
 }
 
@@ -3385,7 +3412,7 @@ CGame = class CGame extends IDisposable {
     // LaunchParameters = new LaunchParameters();
     // Components = new GameComponentCollection();
     this.Services = new CGameServiceContainer();
-    // Content = new ContentManager(Services);
+    this.Content = new ContentManager(this.Services, this);
 
     // updateableComponents = new List<IUpdateable>();
     // currentlyUpdatingComponents = new List<IUpdateable>();
@@ -3499,6 +3526,7 @@ CGame = class CGame extends IDisposable {
 
   /*protected*/ /*virtual*/ /*void*/ Update(/*GameTime*/ gameTime)
   {
+    CInput.Update();
     //console.log(["CGame::Update", gameTime]);
     // lock (updateableComponents)
     // {
@@ -3823,6 +3851,701 @@ CGame = class CGame extends IDisposable {
     }
   }
 };
+
+
+//#region ContentManager
+
+function ContentManager(context, game)
+{
+    this._context = context;
+    this._resources = {};
+    this._game = game;
+};
+
+ContentManager.prototype.loadTexture = function (url)
+{
+    if (this._game.isRunning)
+    {
+        throw new Error("Cannot load Texture once game is running");
+    }
+  if (this._resources[url] === undefined)
+  {
+    var img = new Image();
+    img.src = url;
+    var texture2D = {
+        width: img.width,
+        height: img.height,
+        _img: img,
+              _loaded: false
+    };
+    var $this = this;
+    img.onload = function ()
+    {
+        texture2D.height = img.height;
+        texture2D.width = img.width;
+      texture2D._loaded = true;
+
+      for (var tUrl in $this._resources)
+      {
+        if ($this._resources.hasOwnProperty(tUrl) && !$this._resources[tUrl]._loaded)
+        {
+          return;
+        }
+      }
+
+      if ($this._game._continueRun) $this._game._continueRun();
+    };
+    this._resources[url] = texture2D;
+  }
+  return this._resources[url];
+};
+
+ContentManager.prototype.loadFont = function (name, size, bold, italic)
+{
+    if (this._game.isRunning)
+    {
+        throw new Error("Cannot load Font once game is running");
+    }
+  var style = "";
+  
+  if (bold)
+  {
+    style += "bold ";
+  }
+  if (italic)
+  {
+    style += "italic";
+  }
+
+  style += size + " " + name;
+
+  var spriteFont = {
+          _font: style
+      };
+  var $this = this;
+  spriteFont.measureString = function (text)
+  {
+    return new Vector2($this._context.measureString(text).width, parseInt(size, 10));
+  };
+  return spriteFont;
+};
+
+function loadAudio(urls, $this, resource)
+{
+    if ($this._game.isRunning)
+    {
+        throw new Error("Cannot load Audio once game is running");
+    }
+  var audioElement = document.createElement("audio");
+  audioElement.autoplay = false;
+  audioElement.controls = false;
+  audioElement.loop = false;
+
+  for (var i = 0; i < urls.length; i++)
+  {
+    var url = urls[i];
+    var sourceElement = document.createElement("source");
+    sourceElement.src = url;
+    if (url.substr(url.length - 3, 3) === "mp3")
+    {
+      sourceElement.type = "audio/mpeg";
+    }
+    else if ((url.substr(url.length - 3, 3) === "m4a") || (url.substr(url.length - 3, 3) === "mp4"))
+    {
+      sourceElement.type = "audio/mp4";
+    }
+    else if (url.substr(url.length - 3, 3) === "webm")
+    {
+      sourceElement.type = "audio/webm";
+    }
+    audioElement.appendChild(sourceElement);
+  }
+
+  audioElement.load();
+
+  audioElement.oncanplay = function ()
+  {
+    resource._loaded = true;
+
+    for (var tUrl in $this._resources)
+    {
+        if ($this._resources.hasOwnProperty(tUrl) && !$this._resources[tUrl]._loaded)
+      {
+        return;
+      }
+    }
+
+    if ($this._game._continueRun) $this._game._continueRun();
+  };
+
+  return audioElement;
+}
+
+ContentManager.prototype.loadSoundEffect = function (urls)
+{
+    if (this._game.isRunning)
+    {
+        throw new Error("Cannot load Sound Effect once game is running");
+    }
+  if (typeof urls === "string")
+  {
+    urls = [urls];
+  }
+
+  if (this._resources[urls] === undefined)
+  {
+    var soundEffect = {
+      getDurationMilliseconds: function ()
+      {
+        var seconds = this._audio.duration;
+        if (seconds !== seconds)
+        {
+          seconds = 0;
+        }
+        if (!isFinite(seconds))
+        {
+          return seconds;
+        }
+        return seconds * 1000;
+      },
+      play: function (reset = true)
+      {
+        if (reset) {
+          this._audio.currentTime = 0.0;
+        }
+        this._audio.play();
+      }
+    };
+
+    var audioElement = loadAudio(urls, this, soundEffect);
+
+    soundEffect._audio = audioElement;
+    soundEffect._loaded = false;
+    this._resources[urls] = soundEffect;
+  }
+  return this._resources[urls];
+};
+
+ContentManager.prototype.loadSong = function (urls)
+{
+    if (this._game.isRunning)
+    {
+        throw new Error("Cannot load Song once game is running");
+    }
+  if (typeof urls === "string")
+  {
+    urls = [urls];
+  }
+
+  if (this._resources[urls] === undefined)
+  {
+    var song = {
+      getDurationMilliseconds: function ()
+      {
+        var seconds = this._audio.duration;
+        if (seconds !== seconds)
+        {
+          seconds = 0;
+        }
+        if (!isFinite(seconds))
+        {
+          return seconds;
+        }
+        return seconds * 1000;
+      }
+    };
+
+    var audioElement = loadAudio(urls, this, song);
+
+    song._audio = audioElement;
+    song._loaded = false;
+    this._resources[urls] = song;
+  }
+  return this._resources[urls];
+};
+
+ContentManager.prototype.loadVideo = function (urls)
+{
+    if (this._game.isRunning)
+    {
+        throw new Error("Cannot load Video once game is running");
+    }
+  if (typeof urls === "string")
+  {
+    urls = [urls];
+  }
+
+  if (this._resources[urls] === undefined)
+  {
+    var videoElement = document.createElement("video");
+    videoElement.autoplay = false;
+    videoElement.controls = false;
+    videoElement.loop = false;
+
+    for (var i = 0; i < urls.length; i++)
+    {
+      var url = urls[i];
+      var sourceElement = document.createElement("source");
+      sourceElement.src = url;
+      if ((url.substr(url.length - 3, 3) === "m4v") || (url.substr(url.length - 3, 3) === "mp4"))
+      {
+        sourceElement.type = "video/mp4";
+      }
+      else if (url.substr(url.length - 3, 3) === "webm")
+      {
+        sourceElement.type = "vide/webm";
+      }
+      videoElement.appendChild(sourceElement);
+    }
+
+    videoElement.load();
+
+    var video = {
+      getDurationMilliseconds: function ()
+      {
+        var seconds = this._video.duration;
+        if (seconds !== seconds)
+        {
+          seconds = 0;
+        }
+        if (!isFinite(seconds))
+        {
+          return seconds;
+        }
+        return seconds * 1000;
+      },
+      _video: videoElement,
+      _loaded: false,
+      width: 0,
+              height: 0
+    };
+
+    var $this = this;
+    videoElement.oncanplay = function ()
+    {
+      video._loaded = true;
+
+      video.height = video._video.height;
+      video.width = video._video.width;
+
+      for (var tUrl in $this._resources)
+      {
+          if ($this._resources.hasOwnProperty(tUrl) && !$this._resources[tUrl]._loaded)
+        {
+          return;
+        }
+      }
+
+      if ($this._game._continueRun) $this._game._continueRun();
+    };
+    this._resources[urls] = video;
+  }
+  return this._resources[urls];
+};
+
+
+
+CInput = class CInput {
+  static Update() {
+    this.Mouse.Update();
+    this.Keyboard.Update();
+  }
+};
+
+//#region CInput.Mouse
+
+CInput.MouseButtons = {
+  Left: 0,
+  Middle: 1,
+  Right: 2,
+  XButton1: 3,
+  XButton2: 4,
+};
+
+CMouseState = class CMouseState {
+  constructor() {
+    this.X = 0;
+    this.Y = 0;
+    this.Buttons = new Float32Array(20);
+    this.Wheels = new Float32Array(4);
+  }
+
+  Assign(state) {
+    this.X = state.X;
+    this.Y = state.Y;
+    for (let i = 0; i < this.Buttons.length; i++)
+      this.Buttons[i] = state.Buttons[i];
+    for (let i = 0; i < this.Wheels.length; i++)
+      this.Wheels[i] = state.Wheels[i];
+    this.WheelEvent = state.WheelEvent;
+    return this;
+  }
+
+  Clone(dst = new CMouseState()) {
+    return dst.Assign(this);
+  }
+
+  get Position() {
+    return new CVector2(this.X, this.Y);
+  }
+
+  get Swipe() { return this.Wheels[0] / this.SwipeDampen; }
+  set Swipe(value) { this.Wheels[0] = value; }
+  get SwipeDampen() { return -40.0; }
+
+  get Wheel() { return this.Wheels[1] / this.WheelDampen; }
+  set Wheel(value) { this.Wheels[1] = value; }
+  get WheelDampen() { return -40.0; }
+
+  get Axis() { return this.Wheels[2] / this.AxisDampen; }
+  set Axis(value) { this.Wheels[2] = value; }
+  get AxisDampen() { return -40.0; }
+
+  get Zoom() { return this.Wheels[3] / this.ZoomDampen; }
+  set Zoom(value) { this.Wheels[3] = value; }
+  get ZoomDampen() { return 120.0; }
+
+  ResetWheels() {
+    for (let i = 0; i < this.Wheels.length; i++)
+      this.Wheels[i] = 0.0;
+  }
+};
+
+let mouseState = new CMouseState();
+
+CInput.Mouse = {
+  GetState: function (dst) {
+    return mouseState.Clone(dst);
+  },
+
+  Update: function()
+  {
+    if (this.CurrentState == null)
+      this.CurrentState = this.GetState();
+    if (this.PreviousState == null)
+      this.PreviousState = this.GetState();
+    this.PreviousState.Assign(this.CurrentState);
+    this.GetState(this.CurrentState);
+    mouseState.ResetWheels();
+  },
+};
+
+document.addEventListener("mousemove", function (e)
+{
+  e = e || event;
+  mouseState.X = e.clientX;
+  mouseState.Y = e.clientY;
+});
+
+function mousewheelHandler(e)
+{
+  e = e || event;
+  e.preventDefault();
+  if (e.ctrlKey) {
+    mouseState.Zoom = (e.ctrlKey ? (e.wheelDelta || e.wheelDeltaY || 0) : 0);
+  } else {
+    mouseState.Swipe = (e.wheelDeltaX || 0);
+    mouseState.Wheel = (e.wheelDeltaY || 0);
+    mouseState.Axis = (e.wheelDeltaZ || 0);
+  }
+}
+
+function DOMMouseScrollHandler (e)
+{
+  e = e || event;
+  e.preventDefault();
+
+  mouseState.Wheel = e.detail * -40;
+}
+
+function wheelHandler(e)
+{
+  e = e || event;
+  e.preventDefault();
+
+  mouseState.Wheel = e.deltaY * -120;
+}
+
+document.removeEventListener("mousewheel", mousewheelHandler, {passive: false});
+document.removeEventListener("DOMMouseScroll", DOMMouseScrollHandler, {passive: false});
+document.addEventListener("mousewheel", mousewheelHandler, {passive: false});
+document.addEventListener("DOMMouseScroll", DOMMouseScrollHandler, {passive: false});
+//document.addEventListener("wheel", wheelHandler);
+
+document.removeEventListener("wheel", mousewheelHandler, {passive: false});
+document.addEventListener("wheel", mousewheelHandler, {passive: false});
+
+document.addEventListener("mousedown", function (e)
+{
+  e = e || event;
+  mouseState.Buttons[e.button] = 1;
+}, {passive: false});
+
+document.addEventListener("mouseup", function (e)
+{
+  e = e || event;
+  mouseState.Buttons[e.button] = 0;
+}, {passive: false});
+
+//#endregion
+
+//#region CInput.Keyboard
+
+//NOTE: currently does not support HTML5 based event, uses old style keyCode based.
+
+var keyboardState = {
+  downKeys: [],
+  addKey: function (key)
+  {
+    var low = 0;
+    var high = this.downKeys.length - 1;
+    var i;
+    while (low <= high)
+    {
+      i = Math.floor((low + high) / 2);
+      if (this.downKeys[i] < key)
+      {
+        low = i + 1;
+      }
+      else if (this.downKeys[i] > key)
+      {
+        high = i - 1;
+      }
+      else
+      {
+        return;
+      }
+    }
+    this.downKeys.splice(low, 0, key);
+  },
+  removeKey: function (key)
+  {
+    var low = 0;
+    var high = this.downKeys.length - 1;
+    var i;
+    while (low <= high)
+    {
+      i = Math.floor((low + high) / 2);
+      if (this.downKeys[i] < key)
+      {
+        low = i + 1;
+      }
+      else if (this.downKeys[i] > key)
+      {
+        high = i - 1;
+      }
+      else
+      {
+        this.downKeys.splice(i, 1);
+        return;
+      }
+    }
+  }
+};
+
+CInput.Keyboard = {
+  GetState: function()
+  {
+    var currentState = {
+      downKeys: keyboardState.downKeys.slice(0, keyboardState.downKeys.length),
+      isKeyDown: function (key)
+      {
+        var low = 0;
+        var high = this.downKeys.length - 1;
+        var i;
+        while (low <= high)
+        {
+          i = Math.floor((low + high) / 2);
+          if (this.downKeys[i] < key)
+          {
+            low = i + 1;
+          }
+          else if (this.downKeys[i] > key)
+          {
+            high = i - 1;
+          }
+          else
+          {
+            return true;
+          }
+        }
+        return false;
+      },
+      isKeyUp: function(key)
+      {
+        return !this.isKeyDown(key);
+      }
+    };
+    return currentState;
+  },
+
+  Update: function()
+  {
+    if (this.CurrentState == null)
+      this.CurrentState = this.GetState();
+    if (this.PreviousState == null)
+      this.PreviousState = this.GetState();
+    this.PreviousState = this.CurrentState;
+    this.CurrentState = this.GetState();
+  },
+};
+
+document.addEventListener("keydown", function (e)
+{
+  e = e || event;
+  if ((e.keyCode === 16) || e.shiftKey)
+  {
+    keyboardState.addKey(16);
+  }
+  else if ((e.keyCode === 17) || e.ctrlKey)
+  {
+    keyboardState.addKey(17);
+  }
+  else if ((e.keyCode === 18) || e.altKey)
+  {
+    keyboardState.addKey(18);
+  }
+  
+  if ((e.keyCode !== 16) && (e.keyCode !== 17) && (e.keyCode !== 18))
+  {
+    keyboardState.addKey(e.keyCode);
+  }
+});
+
+document.addEventListener("keyup", function (e)
+{
+  e = e || event;
+  if ((e.keyCode === 16) || e.shiftKey)
+  {
+    keyboardState.removeKey(16);
+  }
+  else if ((e.keyCode === 17) || e.ctrlKey)
+  {
+    keyboardState.removeKey(17);
+  }
+  else if ((e.keyCode === 18) || e.altKey)
+  {
+    keyboardState.removeKey(18);
+  }
+
+  if ((e.keyCode !== 16) && (e.keyCode !== 17) && (e.keyCode !== 18))
+  {
+    keyboardState.removeKey(e.keyCode);
+  }
+});
+
+CInput.Keys = {
+  // Keys with words or arrows
+  Backspace: 8,
+  Tab: 9,
+  Enter: 13,
+  Shift: 16,
+  Ctrl: 17,
+  Alt: 18,
+  Pause: 19,
+  CapsLock: 20,
+  Esc: 27,
+  Spacebar: 32,
+  PageUp: 33,
+  PageDown: 34,
+  End: 35,
+  Home: 36,
+  Left: 37,
+  Up: 38,
+  Right: 39,
+  Down: 40,
+  Insert: 45,
+  Delete: 46,
+  // Top row numbers
+  Zero: 48,
+  One: 49,
+  Two: 50,
+  Three: 51,
+  Four: 52,
+  Five: 53,
+  Six: 54,
+  Seven: 55,
+  Eight: 56,
+  Nine: 57,
+  // Letters
+  A: 65,
+  B: 66,
+  C: 67,
+  D: 68,
+  E: 69,
+  F: 70,
+  G: 71,
+  H: 72,
+  I: 73,
+  J: 74,
+  K: 75,
+  L: 76,
+  M: 77,
+  N: 78,
+  O: 79,
+  P: 80,
+  Q: 81,
+  R: 82,
+  S: 83,
+  T: 84,
+  U: 85,
+  V: 86,
+  W: 87,
+  X: 88,
+  Y: 89,
+  Z: 90,
+  // Keypad
+  NumPadZero: 96,
+  NumPadOne: 97,
+  NumPadTwo: 98,
+  NumPadThree: 99,
+  NumPadFour: 100,
+  NumPadFive: 101,
+  NumPadSix: 102,
+  NumPadSeven: 103,
+  NumPadEight: 104,
+  NumPadNine: 105,
+  Multiply: 106,
+  Add: 107,
+  Subtract: 109,
+  Decimal: 110,
+  Divide: 111,
+  // Function keys
+  F1: 112,
+  F2: 113,
+  F3: 114,
+  F4: 115,
+  F5: 116,
+  F6: 117,
+  F7: 118,
+  F8: 119,
+  F9: 120,
+  F10: 121,
+  F11: 122,
+  F12: 123,
+  F13: 124,
+  F14: 125,
+  F15: 126,
+  F16: 127,
+  F17: 128,
+  F18: 129,
+  F19: 130,
+  F20: 131,
+  F21: 132,
+  F22: 133,
+  F23: 134,
+  F24: 135,
+  // Punctuation that don't require the shift key
+  OpenSquareBracket: 219,
+  CloseSquareBracket: 221,
+  Backslash: 220,
+  Forwardslash: 191,
+  Comma: 188,
+  Period: 190,
+  GraveAccent: 192,
+  SingleQuote: 222
+};
+
 
 CFNAWindow = class CFNAWindow extends CGameWindow {
   constructor(/*IntPtr*/ nativeWindow, /*string*/ display)
@@ -4984,13 +5707,17 @@ CGraphicsDevice = class CGraphicsDevice {
     this.GLDevice = CFNAPlatform.CreateGLDevice(this.PresentationParameters, adapter);
 
     if (typeof CInput !== 'undefined') {
-      // The mouse needs to know this for faux-backbuffer mouse scaling.
-      Input.Mouse.INTERNAL_BackBufferWidth = PresentationParameters.BackBufferWidth;
-      Input.Mouse.INTERNAL_BackBufferHeight = PresentationParameters.BackBufferHeight;
+      if (CInput.Mouse != null) {
+        // The mouse needs to know this for faux-backbuffer mouse scaling.
+        CInput.Mouse.INTERNAL_BackBufferWidth = this.PresentationParameters.BackBufferWidth;
+        CInput.Mouse.INTERNAL_BackBufferHeight = this.PresentationParameters.BackBufferHeight;
+      }
 
-      // The Touch Panel needs this too, for the same reason.
-      Input.Touch.TouchPanel.DisplayWidth = PresentationParameters.BackBufferWidth;
-      Input.Touch.TouchPanel.DisplayHeight = PresentationParameters.BackBufferHeight;
+      if (CInput.Touch != null) {
+        // The Touch Panel needs this too, for the same reason.
+        CInput.Touch.TouchPanel.DisplayWidth = this.PresentationParameters.BackBufferWidth;
+        CInput.Touch.TouchPanel.DisplayHeight = this.PresentationParameters.BackBufferHeight;
+      }
     }
 
     // Force set the default render states.
@@ -5086,13 +5813,17 @@ CGraphicsDevice = class CGraphicsDevice {
     }
 
     if (typeof CInput !== 'undefined') {
-    // The mouse needs to know this for faux-backbuffer mouse scaling.
-    CInput.Mouse.INTERNAL_BackBufferWidth = this.PresentationParameters.BackBufferWidth;
-    CInput.Mouse.INTERNAL_BackBufferHeight = this.PresentationParameters.BackBufferHeight;
+      if (CInput.Mouse != null) {
+        // The mouse needs to know this for faux-backbuffer mouse scaling.
+        CInput.Mouse.INTERNAL_BackBufferWidth = this.PresentationParameters.BackBufferWidth;
+        CInput.Mouse.INTERNAL_BackBufferHeight = this.PresentationParameters.BackBufferHeight;
+      }
 
-    // The Touch Panel needs this too, for the same reason.
-    CInput.Touch.TouchPanel.DisplayWidth = this.PresentationParameters.BackBufferWidth;
-    CInput.Touch.TouchPanel.DisplayHeight = this.PresentationParameters.BackBufferHeight;
+      if (CInput.Touch != null) {
+        // The Touch Panel needs this too, for the same reason.
+        CInput.Touch.TouchPanel.DisplayWidth = this.PresentationParameters.BackBufferWidth;
+        CInput.Touch.TouchPanel.DisplayHeight = this.PresentationParameters.BackBufferHeight;
+      }
     }
 
 // #if WIIU_GAMEPAD

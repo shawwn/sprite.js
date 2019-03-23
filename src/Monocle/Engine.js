@@ -1400,7 +1400,8 @@ CCamera = class CCamera {
 
   /*public*/ /*void*/ Approach2(/*Vector2*/ position, /*float*/ ease)
   {
-    this.Position["+="](position["-"](this.Position)["*"](ease));
+    this.Position = CCalc.Lerp(this.Position, position, ease);
+    //this.Position["+="](position["-"](this.Position)["*"](ease));
     this.changed = true;
   }
 

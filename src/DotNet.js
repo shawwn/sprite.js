@@ -1,3 +1,8 @@
+function either(x, ...ys)
+{
+  return (ys.length <= 0) ? x : (x != null) ? x : either(...ys);
+}
+
 function _instanceof(left, right) {
     if (right != null && typeof Symbol !== "undefined" && right[Symbol.hasInstance]) {
         return right[Symbol.hasInstance](left);
