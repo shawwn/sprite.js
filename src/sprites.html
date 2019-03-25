@@ -425,15 +425,15 @@ fontSheet().then(x => {window.font = x})
         console.log('mouseUp', i);
     }
 
-    /*
     LogIfNotZero(CInput.Mouse.CurrentState.Zoom, "Zoom");
     LogIfNotZero(CInput.Mouse.CurrentState.Swipe, "Swipe");
     LogIfNotZero(CInput.Mouse.CurrentState.Wheel, "Wheel");
     LogIfNotZero(CInput.Mouse.CurrentState.Axis, "Axis");
-    */
     let zoomDelta = 0.05 * CInput.Mouse.CurrentState.Zoom;
-    window.zoom += zoomDelta;
-    window.zoomFocus = CInput.Mouse.CurrentState.Position;
+    if (zoomDelta !== 0) {
+      window.zoom += zoomDelta;
+      window.zoomFocus = CInput.Mouse.CurrentState.Position;
+    }
 
     window.look.X += 16.0 * CInput.Mouse.CurrentState.Swipe / window.zoom;
     window.look.Y += 16.0 * CInput.Mouse.CurrentState.Wheel / window.zoom;
@@ -449,6 +449,11 @@ fontSheet().then(x => {window.font = x})
   window.OnMouseMove["+="]((sender, args) => {
     let pos = CEngine.Camera.ScreenToCamera(args.Current);
     console.log(args.Delta.X, args.Delta.Y, args.Current.X, args.Current.Y, pos.X, pos.Y);
+    if (IsMouseButtonDown(0)) {
+      window.look.X -= args.Delta.X / CEngine.Camera.Zoom;
+      window.look.Y -= args.Delta.Y / CEngine.Camera.Zoom;
+      window.zoomFocus = CInput.Mouse.CurrentState.Position;
+    }
   })
 
   function ZoomTo(level, duration = 5, ease = null) {
